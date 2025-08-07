@@ -19,7 +19,8 @@ mixin _$OrderEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(Order order) orderReceived,
-    required TResult Function(int orderId, Order order, String commuteTime)
+    required TResult Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)
         acceptOrder,
     required TResult Function(int orderId) rejectOrder,
     required TResult Function(int orderId, Order order) startOrder,
@@ -29,7 +30,8 @@ mixin _$OrderEvent {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(Order order)? orderReceived,
-    TResult? Function(int orderId, Order order, String commuteTime)?
+    TResult? Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)?
         acceptOrder,
     TResult? Function(int orderId)? rejectOrder,
     TResult? Function(int orderId, Order order)? startOrder,
@@ -39,7 +41,9 @@ mixin _$OrderEvent {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(Order order)? orderReceived,
-    TResult Function(int orderId, Order order, String commuteTime)? acceptOrder,
+    TResult Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)?
+        acceptOrder,
     TResult Function(int orderId)? rejectOrder,
     TResult Function(int orderId, Order order)? startOrder,
     TResult Function(int orderId, Order order)? completeOrder,
@@ -179,7 +183,8 @@ class _$OrderReceivedEventImpl implements OrderReceivedEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(Order order) orderReceived,
-    required TResult Function(int orderId, Order order, String commuteTime)
+    required TResult Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)
         acceptOrder,
     required TResult Function(int orderId) rejectOrder,
     required TResult Function(int orderId, Order order) startOrder,
@@ -192,7 +197,8 @@ class _$OrderReceivedEventImpl implements OrderReceivedEvent {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(Order order)? orderReceived,
-    TResult? Function(int orderId, Order order, String commuteTime)?
+    TResult? Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)?
         acceptOrder,
     TResult? Function(int orderId)? rejectOrder,
     TResult? Function(int orderId, Order order)? startOrder,
@@ -205,7 +211,9 @@ class _$OrderReceivedEventImpl implements OrderReceivedEvent {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(Order order)? orderReceived,
-    TResult Function(int orderId, Order order, String commuteTime)? acceptOrder,
+    TResult Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)?
+        acceptOrder,
     TResult Function(int orderId)? rejectOrder,
     TResult Function(int orderId, Order order)? startOrder,
     TResult Function(int orderId, Order order)? completeOrder,
@@ -277,7 +285,7 @@ abstract class _$$AcceptOrderEventImplCopyWith<$Res> {
           $Res Function(_$AcceptOrderEventImpl) then) =
       __$$AcceptOrderEventImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({int orderId, Order order, String commuteTime});
+  $Res call({int orderId, bool freeOrder, Order order, String commuteTime});
 
   $OrderCopyWith<$Res> get order;
 }
@@ -296,6 +304,7 @@ class __$$AcceptOrderEventImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? orderId = null,
+    Object? freeOrder = null,
     Object? order = null,
     Object? commuteTime = null,
   }) {
@@ -304,6 +313,10 @@ class __$$AcceptOrderEventImplCopyWithImpl<$Res>
           ? _value.orderId
           : orderId // ignore: cast_nullable_to_non_nullable
               as int,
+      null == freeOrder
+          ? _value.freeOrder
+          : freeOrder // ignore: cast_nullable_to_non_nullable
+              as bool,
       null == order
           ? _value.order
           : order // ignore: cast_nullable_to_non_nullable
@@ -329,11 +342,13 @@ class __$$AcceptOrderEventImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$AcceptOrderEventImpl implements AcceptOrderEvent {
-  const _$AcceptOrderEventImpl(this.orderId, this.order,
+  const _$AcceptOrderEventImpl(this.orderId, this.freeOrder, this.order,
       {required this.commuteTime});
 
   @override
   final int orderId;
+  @override
+  final bool freeOrder;
   @override
   final Order order;
   @override
@@ -341,7 +356,7 @@ class _$AcceptOrderEventImpl implements AcceptOrderEvent {
 
   @override
   String toString() {
-    return 'OrderEvent.acceptOrder(orderId: $orderId, order: $order, commuteTime: $commuteTime)';
+    return 'OrderEvent.acceptOrder(orderId: $orderId, freeOrder: $freeOrder, order: $order, commuteTime: $commuteTime)';
   }
 
   @override
@@ -350,13 +365,16 @@ class _$AcceptOrderEventImpl implements AcceptOrderEvent {
         (other.runtimeType == runtimeType &&
             other is _$AcceptOrderEventImpl &&
             (identical(other.orderId, orderId) || other.orderId == orderId) &&
+            (identical(other.freeOrder, freeOrder) ||
+                other.freeOrder == freeOrder) &&
             (identical(other.order, order) || other.order == order) &&
             (identical(other.commuteTime, commuteTime) ||
                 other.commuteTime == commuteTime));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, orderId, order, commuteTime);
+  int get hashCode =>
+      Object.hash(runtimeType, orderId, freeOrder, order, commuteTime);
 
   /// Create a copy of OrderEvent
   /// with the given fields replaced by the non-null parameter values.
@@ -371,40 +389,44 @@ class _$AcceptOrderEventImpl implements AcceptOrderEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(Order order) orderReceived,
-    required TResult Function(int orderId, Order order, String commuteTime)
+    required TResult Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)
         acceptOrder,
     required TResult Function(int orderId) rejectOrder,
     required TResult Function(int orderId, Order order) startOrder,
     required TResult Function(int orderId, Order order) completeOrder,
   }) {
-    return acceptOrder(orderId, order, commuteTime);
+    return acceptOrder(orderId, freeOrder, order, commuteTime);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(Order order)? orderReceived,
-    TResult? Function(int orderId, Order order, String commuteTime)?
+    TResult? Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)?
         acceptOrder,
     TResult? Function(int orderId)? rejectOrder,
     TResult? Function(int orderId, Order order)? startOrder,
     TResult? Function(int orderId, Order order)? completeOrder,
   }) {
-    return acceptOrder?.call(orderId, order, commuteTime);
+    return acceptOrder?.call(orderId, freeOrder, order, commuteTime);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(Order order)? orderReceived,
-    TResult Function(int orderId, Order order, String commuteTime)? acceptOrder,
+    TResult Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)?
+        acceptOrder,
     TResult Function(int orderId)? rejectOrder,
     TResult Function(int orderId, Order order)? startOrder,
     TResult Function(int orderId, Order order)? completeOrder,
     required TResult orElse(),
   }) {
     if (acceptOrder != null) {
-      return acceptOrder(orderId, order, commuteTime);
+      return acceptOrder(orderId, freeOrder, order, commuteTime);
     }
     return orElse();
   }
@@ -451,10 +473,12 @@ class _$AcceptOrderEventImpl implements AcceptOrderEvent {
 }
 
 abstract class AcceptOrderEvent implements OrderEvent {
-  const factory AcceptOrderEvent(final int orderId, final Order order,
+  const factory AcceptOrderEvent(
+      final int orderId, final bool freeOrder, final Order order,
       {required final String commuteTime}) = _$AcceptOrderEventImpl;
 
   int get orderId;
+  bool get freeOrder;
   Order get order;
   String get commuteTime;
 
@@ -535,7 +559,8 @@ class _$RejectOrderEventImpl implements RejectOrderEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(Order order) orderReceived,
-    required TResult Function(int orderId, Order order, String commuteTime)
+    required TResult Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)
         acceptOrder,
     required TResult Function(int orderId) rejectOrder,
     required TResult Function(int orderId, Order order) startOrder,
@@ -548,7 +573,8 @@ class _$RejectOrderEventImpl implements RejectOrderEvent {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(Order order)? orderReceived,
-    TResult? Function(int orderId, Order order, String commuteTime)?
+    TResult? Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)?
         acceptOrder,
     TResult? Function(int orderId)? rejectOrder,
     TResult? Function(int orderId, Order order)? startOrder,
@@ -561,7 +587,9 @@ class _$RejectOrderEventImpl implements RejectOrderEvent {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(Order order)? orderReceived,
-    TResult Function(int orderId, Order order, String commuteTime)? acceptOrder,
+    TResult Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)?
+        acceptOrder,
     TResult Function(int orderId)? rejectOrder,
     TResult Function(int orderId, Order order)? startOrder,
     TResult Function(int orderId, Order order)? completeOrder,
@@ -716,7 +744,8 @@ class _$StartOrderEventImpl implements StartOrderEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(Order order) orderReceived,
-    required TResult Function(int orderId, Order order, String commuteTime)
+    required TResult Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)
         acceptOrder,
     required TResult Function(int orderId) rejectOrder,
     required TResult Function(int orderId, Order order) startOrder,
@@ -729,7 +758,8 @@ class _$StartOrderEventImpl implements StartOrderEvent {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(Order order)? orderReceived,
-    TResult? Function(int orderId, Order order, String commuteTime)?
+    TResult? Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)?
         acceptOrder,
     TResult? Function(int orderId)? rejectOrder,
     TResult? Function(int orderId, Order order)? startOrder,
@@ -742,7 +772,9 @@ class _$StartOrderEventImpl implements StartOrderEvent {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(Order order)? orderReceived,
-    TResult Function(int orderId, Order order, String commuteTime)? acceptOrder,
+    TResult Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)?
+        acceptOrder,
     TResult Function(int orderId)? rejectOrder,
     TResult Function(int orderId, Order order)? startOrder,
     TResult Function(int orderId, Order order)? completeOrder,
@@ -899,7 +931,8 @@ class _$CompleteOrderEventImpl implements CompleteOrderEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(Order order) orderReceived,
-    required TResult Function(int orderId, Order order, String commuteTime)
+    required TResult Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)
         acceptOrder,
     required TResult Function(int orderId) rejectOrder,
     required TResult Function(int orderId, Order order) startOrder,
@@ -912,7 +945,8 @@ class _$CompleteOrderEventImpl implements CompleteOrderEvent {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(Order order)? orderReceived,
-    TResult? Function(int orderId, Order order, String commuteTime)?
+    TResult? Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)?
         acceptOrder,
     TResult? Function(int orderId)? rejectOrder,
     TResult? Function(int orderId, Order order)? startOrder,
@@ -925,7 +959,9 @@ class _$CompleteOrderEventImpl implements CompleteOrderEvent {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(Order order)? orderReceived,
-    TResult Function(int orderId, Order order, String commuteTime)? acceptOrder,
+    TResult Function(
+            int orderId, bool freeOrder, Order order, String commuteTime)?
+        acceptOrder,
     TResult Function(int orderId)? rejectOrder,
     TResult Function(int orderId, Order order)? startOrder,
     TResult Function(int orderId, Order order)? completeOrder,

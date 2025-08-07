@@ -26,7 +26,7 @@ class _DistrictsScreenState extends State<DistrictsScreen>
   bool _autoSwitchRegions = false;
   bool _isAutoSwitchForcedByBackend = false;
   bool _autoModeEnabled = false;
-  Map<int, Map<String, dynamic>> _districtStats = {};
+  // Map<int, Map<String, dynamic>> _districtStats = {};
   StreamSubscription<Map<String, dynamic>?>? _locationSubscription;
 
   @override
@@ -52,22 +52,22 @@ class _DistrictsScreenState extends State<DistrictsScreen>
     super.dispose();
   }
 
-  Future<void> _fetchDistrictStats(
-      int districtId, Map<String, dynamic> district) async {
-    if (_districtStats.containsKey(districtId)) return;
+  // Future<void> _fetchDistrictStats(
+  //     int districtId, Map<String, dynamic> district) async {
+  //   if (_districtStats.containsKey(districtId)) return;
 
-    try {
-      setState(() {
-        _districtStats[districtId] = {
-          'free_orders': district['not_accepted_request_count'] ?? 0,
-          'queue': district['driver_current_queue'] ?? 0,
-          'cars': district['queue_count'] ?? 0,
-        };
-      });
-    } catch (e) {
-      print('Error fetching district stats: $e');
-    }
-  }
+  //   try {
+  //     setState(() {
+  //       _districtStats[districtId] = {
+  //         'free_orders': district['not_accepted_request_count'] ?? 0,
+  //         'queue': district['driver_current_queue'] ?? 0,
+  //         'cars': district['queue_count'] ?? 0,
+  //       };
+  //     });
+  //   } catch (e) {
+  //     print('Error fetching district stats: $e');
+  //   }
+  // }
 
   Future<void> _fetchProfileDistricts() async {
     final profile = await getIt<AuthRepository>().getProfile();
@@ -195,6 +195,8 @@ class _DistrictsScreenState extends State<DistrictsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Район успешно изменён')),
         );
+        // Fetch districts data again to update the UI
+        context.read<DistrictsCubit>().fetchDistricts();
       }
     } catch (e) {
       setState(() {
@@ -222,6 +224,8 @@ class _DistrictsScreenState extends State<DistrictsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Вы снялись с отметок района')),
         );
+        // Fetch districts data again to update the UI
+        context.read<DistrictsCubit>().fetchDistricts();
       }
     } catch (e) {
       setState(() {
@@ -425,13 +429,13 @@ class _DistrictsScreenState extends State<DistrictsScreen>
                                     _driverDistrict == slug;
 
                                 // Fetch stats for this district
-                                if (districtId != null) {
-                                  _fetchDistrictStats(districtId, district);
-                                }
+                                // if (districtId != null) {
+                                //   _fetchDistrictStats(districtId, district);
+                                // }
 
-                                final stats = districtId != null
-                                    ? _districtStats[districtId]
-                                    : null;
+                                // final stats = districtId != null
+                                //     ? _districtStats[districtId]
+                                //     : null;
 
                                 return GestureDetector(
                                   onTap: _isRegistering
@@ -675,34 +679,32 @@ class _DistrictsScreenState extends State<DistrictsScreen>
                                                 ),
                                                 textAlign: TextAlign.center,
                                               ),
-                                              if (stats != null) ...[
-                                                const SizedBox(height: 5),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceEvenly,
-                                                  children: [
-                                                    _StatItem(
-                                                      icon: Icons.queue,
-                                                      value:
-                                                          '${stats['queue'] ?? 0}',
-                                                      color: Colors.white,
-                                                    ),
-                                                    _StatItem(
-                                                      icon: Icons.local_taxi,
-                                                      value:
-                                                          '${stats['cars'] ?? 0}',
-                                                      color: Colors.white,
-                                                    ),
-                                                    _StatItem(
-                                                      icon: Icons.assignment,
-                                                      value:
-                                                          '${stats['free_orders'] ?? 0}',
-                                                      color: Colors.white,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
+                                              const SizedBox(height: 5),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceEvenly,
+                                                children: [
+                                                  _StatItem(
+                                                    icon: Icons.queue,
+                                                    value:
+                                                        '${district['driver_current_queue'] ?? 0}',
+                                                    color: Colors.white,
+                                                  ),
+                                                  _StatItem(
+                                                    icon: Icons.local_taxi,
+                                                    value:
+                                                        '${district['queue_count'] ?? 0}',
+                                                    color: Colors.white,
+                                                  ),
+                                                  _StatItem(
+                                                    icon: Icons.assignment,
+                                                    value:
+                                                        '${district['not_accepted_request_count'] ?? 0}',
+                                                    color: Colors.white,
+                                                  ),
+                                                ],
+                                              ),
                                             ],
                                           ),
                                         ),

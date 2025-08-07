@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:taxi_service/core/di/injection.dart';
+import 'package:taxi_service/core/services/additional_settings_service.dart';
 
 class AdditionalSettingsScreen extends StatefulWidget {
   const AdditionalSettingsScreen({super.key});
@@ -10,42 +12,23 @@ class AdditionalSettingsScreen extends StatefulWidget {
 }
 
 class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
-  double _soundLevel = 0.5;
-  bool _vibrationEnabled = true;
-  bool _notificationsEnabled = true;
-  bool _autoStartEnabled = false;
-  bool _darkModeEnabled = true;
-  String _language = 'Русский';
-  double _fontSize = 1.0;
+  AdditionalSettingsService _additionalSettingsService =
+      getIt<AdditionalSettingsService>();
 
   @override
   void initState() {
     super.initState();
-    _loadSettings();
+    getIt<AdditionalSettingsService>().addListener(stateChanger);
+    getIt<AdditionalSettingsService>().loadSettings();
   }
 
-  Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _soundLevel = prefs.getDouble('sound_level') ?? 0.5;
-      _vibrationEnabled = prefs.getBool('vibration_enabled') ?? true;
-      _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
-      _autoStartEnabled = prefs.getBool('auto_start_enabled') ?? false;
-      _darkModeEnabled = prefs.getBool('dark_mode_enabled') ?? true;
-      _language = prefs.getString('language') ?? 'Русский';
-      _fontSize = prefs.getDouble('font_size') ?? 1.0;
-    });
+  stateChanger() {
+    setState(() {});
   }
 
-  Future<void> _saveSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('sound_level', _soundLevel);
-    await prefs.setBool('vibration_enabled', _vibrationEnabled);
-    await prefs.setBool('notifications_enabled', _notificationsEnabled);
-    await prefs.setBool('auto_start_enabled', _autoStartEnabled);
-    await prefs.setBool('dark_mode_enabled', _darkModeEnabled);
-    await prefs.setString('language', _language);
-    await prefs.setDouble('font_size', _fontSize);
+  dispose() {
+    _additionalSettingsService.saveSettings();
+    super.dispose();
   }
 
   @override
@@ -76,15 +59,15 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
             _buildSectionTitle('Звук и уведомления'),
             _buildSoundLevelCard(),
             _buildVibrationCard(),
-            _buildNotificationsCard(),
-            const SizedBox(height: 24),
-            _buildSectionTitle('Внешний вид'),
-            _buildDarkModeCard(),
-            _buildFontSizeCard(),
-            _buildLanguageCard(),
+            // _buildNotificationsCard(),
+            // const SizedBox(height: 24),
+            // _buildSectionTitle('Внешний вид'),
+            // _buildDarkModeCard(),
+            // _buildFontSizeCard(),
+            _buildRingtoneCard(),
             const SizedBox(height: 24),
             _buildSectionTitle('Приложение'),
-            _buildAutoStartCard(),
+            // _buildAutoStartCard(),
             _buildAboutCard(),
           ],
         ),
@@ -110,11 +93,11 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
     return _buildSettingsCard(
       icon: Icons.volume_up,
       title: 'Громкость звука',
-      subtitle: '${(_soundLevel * 100).round()}%',
+      subtitle: '${(_additionalSettingsService.soundLevel * 100).round()}%',
       child: Column(
         children: [
           Slider(
-            value: _soundLevel,
+            value: _additionalSettingsService.soundLevel,
             min: 0.0,
             max: 1.0,
             divisions: 10,
@@ -122,9 +105,8 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
             inactiveColor: Colors.white.withOpacity(0.2),
             onChanged: (value) {
               setState(() {
-                _soundLevel = value;
+                _additionalSettingsService.soundLevel = value;
               });
-              _saveSettings();
             },
           ),
           Row(
@@ -149,14 +131,15 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
     return _buildSettingsCard(
       icon: Icons.vibration,
       title: 'Вибрация',
-      subtitle: _vibrationEnabled ? 'Включена' : 'Выключена',
+      subtitle: _additionalSettingsService.vibrationEnabled
+          ? 'Включена'
+          : 'Выключена',
       child: Switch(
-        value: _vibrationEnabled,
+        value: _additionalSettingsService.vibrationEnabled,
         onChanged: (value) {
           setState(() {
-            _vibrationEnabled = value;
+            _additionalSettingsService.vibrationEnabled = value;
           });
-          _saveSettings();
         },
         activeColor: const Color(0xFF7C3AED),
         inactiveThumbColor: Colors.white.withOpacity(0.3),
@@ -165,90 +148,90 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
     );
   }
 
-  Widget _buildNotificationsCard() {
-    return _buildSettingsCard(
-      icon: Icons.notifications,
-      title: 'Уведомления',
-      subtitle: _notificationsEnabled ? 'Включены' : 'Выключены',
-      child: Switch(
-        value: _notificationsEnabled,
-        onChanged: (value) {
-          setState(() {
-            _notificationsEnabled = value;
-          });
-          _saveSettings();
-        },
-        activeColor: const Color(0xFF7C3AED),
-        inactiveThumbColor: Colors.white.withOpacity(0.3),
-        inactiveTrackColor: Colors.white.withOpacity(0.1),
-      ),
-    );
-  }
+  // Widget _buildNotificationsCard() {
+  //   return _buildSettingsCard(
+  //     icon: Icons.notifications,
+  //     title: 'Уведомления',
+  //     subtitle: _notificationsEnabled ? 'Включены' : 'Выключены',
+  //     child: Switch(
+  //       value: _notificationsEnabled,
+  //       onChanged: (value) {
+  //         setState(() {
+  //           _notificationsEnabled = value;
+  //         });
+  //         _saveSettings();
+  //       },
+  //       activeColor: const Color(0xFF7C3AED),
+  //       inactiveThumbColor: Colors.white.withOpacity(0.3),
+  //       inactiveTrackColor: Colors.white.withOpacity(0.1),
+  //     ),
+  //   );
+  // }
 
-  Widget _buildDarkModeCard() {
-    return _buildSettingsCard(
-      icon: Icons.dark_mode,
-      title: 'Темная тема',
-      subtitle: _darkModeEnabled ? 'Включена' : 'Выключена',
-      child: Switch(
-        value: _darkModeEnabled,
-        onChanged: (value) {
-          setState(() {
-            _darkModeEnabled = value;
-          });
-          _saveSettings();
-        },
-        activeColor: const Color(0xFF7C3AED),
-        inactiveThumbColor: Colors.white.withOpacity(0.3),
-        inactiveTrackColor: Colors.white.withOpacity(0.1),
-      ),
-    );
-  }
+  // Widget _buildDarkModeCard() {
+  //   return _buildSettingsCard(
+  //     icon: Icons.dark_mode,
+  //     title: 'Темная тема',
+  //     subtitle: _darkModeEnabled ? 'Включена' : 'Выключена',
+  //     child: Switch(
+  //       value: _darkModeEnabled,
+  //       onChanged: (value) {
+  //         setState(() {
+  //           _darkModeEnabled = value;
+  //         });
+  //         _saveSettings();
+  //       },
+  //       activeColor: const Color(0xFF7C3AED),
+  //       inactiveThumbColor: Colors.white.withOpacity(0.3),
+  //       inactiveTrackColor: Colors.white.withOpacity(0.1),
+  //     ),
+  //   );
+  // }
 
-  Widget _buildFontSizeCard() {
-    return _buildSettingsCard(
-      icon: Icons.text_fields,
-      title: 'Размер шрифта',
-      subtitle: _getFontSizeLabel(),
-      child: Column(
-        children: [
-          Slider(
-            value: _fontSize,
-            min: 0.8,
-            max: 1.4,
-            divisions: 6,
-            activeColor: const Color(0xFF7C3AED),
-            inactiveColor: Colors.white.withOpacity(0.2),
-            onChanged: (value) {
-              setState(() {
-                _fontSize = value;
-              });
-              _saveSettings();
-            },
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Маленький',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-              const Text(
-                'Большой',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildFontSizeCard() {
+  //   return _buildSettingsCard(
+  //     icon: Icons.text_fields,
+  //     title: 'Размер шрифта',
+  //     subtitle: _getFontSizeLabel(),
+  //     child: Column(
+  //       children: [
+  //         Slider(
+  //           value: _fontSize,
+  //           min: 0.8,
+  //           max: 1.4,
+  //           divisions: 6,
+  //           activeColor: const Color(0xFF7C3AED),
+  //           inactiveColor: Colors.white.withOpacity(0.2),
+  //           onChanged: (value) {
+  //             setState(() {
+  //               _fontSize = value;
+  //             });
+  //             _saveSettings();
+  //           },
+  //         ),
+  //         Row(
+  //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //           children: [
+  //             const Text(
+  //               'Маленький',
+  //               style: TextStyle(color: Colors.white54, fontSize: 12),
+  //             ),
+  //             const Text(
+  //               'Большой',
+  //               style: TextStyle(color: Colors.white54, fontSize: 12),
+  //             ),
+  //           ],
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
-  Widget _buildLanguageCard() {
+  Widget _buildRingtoneCard() {
     return _buildSettingsCard(
-      icon: Icons.language,
-      title: 'Язык',
-      subtitle: _language,
+      icon: Icons.music_note,
+      title: 'Рингтон',
+      subtitle: '',
       child: PopupMenuButton<String>(
         color: const Color(0xFF2A2A2A),
         child: Container(
@@ -261,7 +244,11 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                _language,
+                _additionalSettingsService.ringtone == 'funny.mp3'
+                    ? 'Funny'
+                    : _additionalSettingsService.ringtone == 'phone.mp3'
+                        ? 'Default'
+                        : 'Simple',
                 style: const TextStyle(color: Colors.white),
               ),
               const SizedBox(width: 8),
@@ -271,47 +258,46 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
         ),
         onSelected: (value) {
           setState(() {
-            _language = value;
+            _additionalSettingsService.ringtone = value;
           });
-          _saveSettings();
         },
         itemBuilder: (context) => [
           const PopupMenuItem(
-            value: 'Русский',
-            child: Text('Русский', style: TextStyle(color: Colors.white)),
+            value: 'ringtone.mp3',
+            child: Text('Simple', style: TextStyle(color: Colors.white)),
           ),
           const PopupMenuItem(
-            value: 'English',
-            child: Text('English', style: TextStyle(color: Colors.white)),
+            value: 'phone.mp3',
+            child: Text('Default', style: TextStyle(color: Colors.white)),
           ),
           const PopupMenuItem(
-            value: 'O\'zbekcha',
-            child: Text('O\'zbekcha', style: TextStyle(color: Colors.white)),
+            value: 'funny.mp3',
+            child: Text('Funny', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAutoStartCard() {
-    return _buildSettingsCard(
-      icon: Icons.play_arrow,
-      title: 'Автозапуск',
-      subtitle: _autoStartEnabled ? 'Включен' : 'Выключен',
-      child: Switch(
-        value: _autoStartEnabled,
-        onChanged: (value) {
-          setState(() {
-            _autoStartEnabled = value;
-          });
-          _saveSettings();
-        },
-        activeColor: const Color(0xFF7C3AED),
-        inactiveThumbColor: Colors.white.withOpacity(0.3),
-        inactiveTrackColor: Colors.white.withOpacity(0.1),
-      ),
-    );
-  }
+  // Widget _buildAutoStartCard() {
+  //   return _buildSettingsCard(
+  //     icon: Icons.play_arrow,
+  //     title: 'Автозапуск',
+  //     subtitle: _autoStartEnabled ? 'Включен' : 'Выключен',
+  //     child: Switch(
+  //       value: _autoStartEnabled,
+  //       onChanged: (value) {
+  //         setState(() {
+  //           _autoStartEnabled = value;
+  //         });
+  //         _saveSettings();
+  //       },
+  //       activeColor: const Color(0xFF7C3AED),
+  //       inactiveThumbColor: Colors.white.withOpacity(0.3),
+  //       inactiveTrackColor: Colors.white.withOpacity(0.1),
+  //     ),
+  //   );
+  // }
 
   Widget _buildAboutCard() {
     return _buildSettingsCard(
@@ -373,13 +359,14 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
-                      fontSize: 14,
+                  if (subtitle.isNotEmpty)
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.6),
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -390,12 +377,12 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
     );
   }
 
-  String _getFontSizeLabel() {
-    if (_fontSize <= 0.9) return 'Маленький';
-    if (_fontSize <= 1.1) return 'Средний';
-    if (_fontSize <= 1.3) return 'Большой';
-    return 'Очень большой';
-  }
+  // String _getFontSizeLabel() {
+  //   if (_fontSize <= 0.9) return 'Маленький';
+  //   if (_fontSize <= 1.1) return 'Средний';
+  //   if (_fontSize <= 1.3) return 'Большой';
+  //   return 'Очень большой';
+  // }
 
   void _showAboutDialog() {
     showDialog(
@@ -411,7 +398,7 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Такси Водитель',
+              'Водитель Такси',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -425,12 +412,12 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
             ),
             SizedBox(height: 4),
             Text(
-              'Разработчик: Taxi Service Team',
+              'Разработчик: Tiz Taxi',
               style: TextStyle(color: Colors.white70),
             ),
             SizedBox(height: 4),
             Text(
-              '© 2024 Все права защищены',
+              '© 2025 Все права защищены',
               style: TextStyle(color: Colors.white70),
             ),
           ],

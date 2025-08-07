@@ -21,7 +21,8 @@ mixin _$OrderState {
     required TResult Function() initial,
     required TResult Function() loading,
     required TResult Function(Order order, String? commuteTime) orderReceived,
-    required TResult Function(Order order, String? commuteTime) orderAccepted,
+    required TResult Function(Order order, bool freeOrder, String? commuteTime)
+        orderAccepted,
     required TResult Function(Order order, String? commuteTime) orderInProgress,
     required TResult Function(Order order) orderCompleted,
     required TResult Function(String message) error,
@@ -32,7 +33,8 @@ mixin _$OrderState {
     TResult? Function()? initial,
     TResult? Function()? loading,
     TResult? Function(Order order, String? commuteTime)? orderReceived,
-    TResult? Function(Order order, String? commuteTime)? orderAccepted,
+    TResult? Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult? Function(Order order, String? commuteTime)? orderInProgress,
     TResult? Function(Order order)? orderCompleted,
     TResult? Function(String message)? error,
@@ -43,7 +45,8 @@ mixin _$OrderState {
     TResult Function()? initial,
     TResult Function()? loading,
     TResult Function(Order order, String? commuteTime)? orderReceived,
-    TResult Function(Order order, String? commuteTime)? orderAccepted,
+    TResult Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult Function(Order order, String? commuteTime)? orderInProgress,
     TResult Function(Order order)? orderCompleted,
     TResult Function(String message)? error,
@@ -151,7 +154,8 @@ class _$InitialImpl implements _Initial {
     required TResult Function() initial,
     required TResult Function() loading,
     required TResult Function(Order order, String? commuteTime) orderReceived,
-    required TResult Function(Order order, String? commuteTime) orderAccepted,
+    required TResult Function(Order order, bool freeOrder, String? commuteTime)
+        orderAccepted,
     required TResult Function(Order order, String? commuteTime) orderInProgress,
     required TResult Function(Order order) orderCompleted,
     required TResult Function(String message) error,
@@ -165,7 +169,8 @@ class _$InitialImpl implements _Initial {
     TResult? Function()? initial,
     TResult? Function()? loading,
     TResult? Function(Order order, String? commuteTime)? orderReceived,
-    TResult? Function(Order order, String? commuteTime)? orderAccepted,
+    TResult? Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult? Function(Order order, String? commuteTime)? orderInProgress,
     TResult? Function(Order order)? orderCompleted,
     TResult? Function(String message)? error,
@@ -179,7 +184,8 @@ class _$InitialImpl implements _Initial {
     TResult Function()? initial,
     TResult Function()? loading,
     TResult Function(Order order, String? commuteTime)? orderReceived,
-    TResult Function(Order order, String? commuteTime)? orderAccepted,
+    TResult Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult Function(Order order, String? commuteTime)? orderInProgress,
     TResult Function(Order order)? orderCompleted,
     TResult Function(String message)? error,
@@ -286,7 +292,8 @@ class _$LoadingImpl implements _Loading {
     required TResult Function() initial,
     required TResult Function() loading,
     required TResult Function(Order order, String? commuteTime) orderReceived,
-    required TResult Function(Order order, String? commuteTime) orderAccepted,
+    required TResult Function(Order order, bool freeOrder, String? commuteTime)
+        orderAccepted,
     required TResult Function(Order order, String? commuteTime) orderInProgress,
     required TResult Function(Order order) orderCompleted,
     required TResult Function(String message) error,
@@ -300,7 +307,8 @@ class _$LoadingImpl implements _Loading {
     TResult? Function()? initial,
     TResult? Function()? loading,
     TResult? Function(Order order, String? commuteTime)? orderReceived,
-    TResult? Function(Order order, String? commuteTime)? orderAccepted,
+    TResult? Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult? Function(Order order, String? commuteTime)? orderInProgress,
     TResult? Function(Order order)? orderCompleted,
     TResult? Function(String message)? error,
@@ -314,7 +322,8 @@ class _$LoadingImpl implements _Loading {
     TResult Function()? initial,
     TResult Function()? loading,
     TResult Function(Order order, String? commuteTime)? orderReceived,
-    TResult Function(Order order, String? commuteTime)? orderAccepted,
+    TResult Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult Function(Order order, String? commuteTime)? orderInProgress,
     TResult Function(Order order)? orderCompleted,
     TResult Function(String message)? error,
@@ -469,7 +478,8 @@ class _$OrderReceivedImpl implements _OrderReceived {
     required TResult Function() initial,
     required TResult Function() loading,
     required TResult Function(Order order, String? commuteTime) orderReceived,
-    required TResult Function(Order order, String? commuteTime) orderAccepted,
+    required TResult Function(Order order, bool freeOrder, String? commuteTime)
+        orderAccepted,
     required TResult Function(Order order, String? commuteTime) orderInProgress,
     required TResult Function(Order order) orderCompleted,
     required TResult Function(String message) error,
@@ -483,7 +493,8 @@ class _$OrderReceivedImpl implements _OrderReceived {
     TResult? Function()? initial,
     TResult? Function()? loading,
     TResult? Function(Order order, String? commuteTime)? orderReceived,
-    TResult? Function(Order order, String? commuteTime)? orderAccepted,
+    TResult? Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult? Function(Order order, String? commuteTime)? orderInProgress,
     TResult? Function(Order order)? orderCompleted,
     TResult? Function(String message)? error,
@@ -497,7 +508,8 @@ class _$OrderReceivedImpl implements _OrderReceived {
     TResult Function()? initial,
     TResult Function()? loading,
     TResult Function(Order order, String? commuteTime)? orderReceived,
-    TResult Function(Order order, String? commuteTime)? orderAccepted,
+    TResult Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult Function(Order order, String? commuteTime)? orderInProgress,
     TResult Function(Order order)? orderCompleted,
     TResult Function(String message)? error,
@@ -576,7 +588,7 @@ abstract class _$$OrderAcceptedImplCopyWith<$Res> {
           _$OrderAcceptedImpl value, $Res Function(_$OrderAcceptedImpl) then) =
       __$$OrderAcceptedImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({Order order, String? commuteTime});
+  $Res call({Order order, bool freeOrder, String? commuteTime});
 
   $OrderCopyWith<$Res> get order;
 }
@@ -595,6 +607,7 @@ class __$$OrderAcceptedImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? order = null,
+    Object? freeOrder = null,
     Object? commuteTime = freezed,
   }) {
     return _then(_$OrderAcceptedImpl(
@@ -602,6 +615,10 @@ class __$$OrderAcceptedImplCopyWithImpl<$Res>
           ? _value.order
           : order // ignore: cast_nullable_to_non_nullable
               as Order,
+      null == freeOrder
+          ? _value.freeOrder
+          : freeOrder // ignore: cast_nullable_to_non_nullable
+              as bool,
       commuteTime: freezed == commuteTime
           ? _value.commuteTime
           : commuteTime // ignore: cast_nullable_to_non_nullable
@@ -623,16 +640,18 @@ class __$$OrderAcceptedImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$OrderAcceptedImpl implements _OrderAccepted {
-  const _$OrderAcceptedImpl(this.order, {this.commuteTime});
+  const _$OrderAcceptedImpl(this.order, this.freeOrder, {this.commuteTime});
 
   @override
   final Order order;
+  @override
+  final bool freeOrder;
   @override
   final String? commuteTime;
 
   @override
   String toString() {
-    return 'OrderState.orderAccepted(order: $order, commuteTime: $commuteTime)';
+    return 'OrderState.orderAccepted(order: $order, freeOrder: $freeOrder, commuteTime: $commuteTime)';
   }
 
   @override
@@ -641,12 +660,14 @@ class _$OrderAcceptedImpl implements _OrderAccepted {
         (other.runtimeType == runtimeType &&
             other is _$OrderAcceptedImpl &&
             (identical(other.order, order) || other.order == order) &&
+            (identical(other.freeOrder, freeOrder) ||
+                other.freeOrder == freeOrder) &&
             (identical(other.commuteTime, commuteTime) ||
                 other.commuteTime == commuteTime));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, order, commuteTime);
+  int get hashCode => Object.hash(runtimeType, order, freeOrder, commuteTime);
 
   /// Create a copy of OrderState
   /// with the given fields replaced by the non-null parameter values.
@@ -662,12 +683,13 @@ class _$OrderAcceptedImpl implements _OrderAccepted {
     required TResult Function() initial,
     required TResult Function() loading,
     required TResult Function(Order order, String? commuteTime) orderReceived,
-    required TResult Function(Order order, String? commuteTime) orderAccepted,
+    required TResult Function(Order order, bool freeOrder, String? commuteTime)
+        orderAccepted,
     required TResult Function(Order order, String? commuteTime) orderInProgress,
     required TResult Function(Order order) orderCompleted,
     required TResult Function(String message) error,
   }) {
-    return orderAccepted(order, commuteTime);
+    return orderAccepted(order, freeOrder, commuteTime);
   }
 
   @override
@@ -676,12 +698,13 @@ class _$OrderAcceptedImpl implements _OrderAccepted {
     TResult? Function()? initial,
     TResult? Function()? loading,
     TResult? Function(Order order, String? commuteTime)? orderReceived,
-    TResult? Function(Order order, String? commuteTime)? orderAccepted,
+    TResult? Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult? Function(Order order, String? commuteTime)? orderInProgress,
     TResult? Function(Order order)? orderCompleted,
     TResult? Function(String message)? error,
   }) {
-    return orderAccepted?.call(order, commuteTime);
+    return orderAccepted?.call(order, freeOrder, commuteTime);
   }
 
   @override
@@ -690,14 +713,15 @@ class _$OrderAcceptedImpl implements _OrderAccepted {
     TResult Function()? initial,
     TResult Function()? loading,
     TResult Function(Order order, String? commuteTime)? orderReceived,
-    TResult Function(Order order, String? commuteTime)? orderAccepted,
+    TResult Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult Function(Order order, String? commuteTime)? orderInProgress,
     TResult Function(Order order)? orderCompleted,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) {
     if (orderAccepted != null) {
-      return orderAccepted(order, commuteTime);
+      return orderAccepted(order, freeOrder, commuteTime);
     }
     return orElse();
   }
@@ -750,10 +774,11 @@ class _$OrderAcceptedImpl implements _OrderAccepted {
 }
 
 abstract class _OrderAccepted implements OrderState {
-  const factory _OrderAccepted(final Order order, {final String? commuteTime}) =
-      _$OrderAcceptedImpl;
+  const factory _OrderAccepted(final Order order, final bool freeOrder,
+      {final String? commuteTime}) = _$OrderAcceptedImpl;
 
   Order get order;
+  bool get freeOrder;
   String? get commuteTime;
 
   /// Create a copy of OrderState
@@ -856,7 +881,8 @@ class _$OrderInProgressImpl implements _OrderInProgress {
     required TResult Function() initial,
     required TResult Function() loading,
     required TResult Function(Order order, String? commuteTime) orderReceived,
-    required TResult Function(Order order, String? commuteTime) orderAccepted,
+    required TResult Function(Order order, bool freeOrder, String? commuteTime)
+        orderAccepted,
     required TResult Function(Order order, String? commuteTime) orderInProgress,
     required TResult Function(Order order) orderCompleted,
     required TResult Function(String message) error,
@@ -870,7 +896,8 @@ class _$OrderInProgressImpl implements _OrderInProgress {
     TResult? Function()? initial,
     TResult? Function()? loading,
     TResult? Function(Order order, String? commuteTime)? orderReceived,
-    TResult? Function(Order order, String? commuteTime)? orderAccepted,
+    TResult? Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult? Function(Order order, String? commuteTime)? orderInProgress,
     TResult? Function(Order order)? orderCompleted,
     TResult? Function(String message)? error,
@@ -884,7 +911,8 @@ class _$OrderInProgressImpl implements _OrderInProgress {
     TResult Function()? initial,
     TResult Function()? loading,
     TResult Function(Order order, String? commuteTime)? orderReceived,
-    TResult Function(Order order, String? commuteTime)? orderAccepted,
+    TResult Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult Function(Order order, String? commuteTime)? orderInProgress,
     TResult Function(Order order)? orderCompleted,
     TResult Function(String message)? error,
@@ -1041,7 +1069,8 @@ class _$OrderCompletedImpl implements _OrderCompleted {
     required TResult Function() initial,
     required TResult Function() loading,
     required TResult Function(Order order, String? commuteTime) orderReceived,
-    required TResult Function(Order order, String? commuteTime) orderAccepted,
+    required TResult Function(Order order, bool freeOrder, String? commuteTime)
+        orderAccepted,
     required TResult Function(Order order, String? commuteTime) orderInProgress,
     required TResult Function(Order order) orderCompleted,
     required TResult Function(String message) error,
@@ -1055,7 +1084,8 @@ class _$OrderCompletedImpl implements _OrderCompleted {
     TResult? Function()? initial,
     TResult? Function()? loading,
     TResult? Function(Order order, String? commuteTime)? orderReceived,
-    TResult? Function(Order order, String? commuteTime)? orderAccepted,
+    TResult? Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult? Function(Order order, String? commuteTime)? orderInProgress,
     TResult? Function(Order order)? orderCompleted,
     TResult? Function(String message)? error,
@@ -1069,7 +1099,8 @@ class _$OrderCompletedImpl implements _OrderCompleted {
     TResult Function()? initial,
     TResult Function()? loading,
     TResult Function(Order order, String? commuteTime)? orderReceived,
-    TResult Function(Order order, String? commuteTime)? orderAccepted,
+    TResult Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult Function(Order order, String? commuteTime)? orderInProgress,
     TResult Function(Order order)? orderCompleted,
     TResult Function(String message)? error,
@@ -1211,7 +1242,8 @@ class _$ErrorImpl implements _Error {
     required TResult Function() initial,
     required TResult Function() loading,
     required TResult Function(Order order, String? commuteTime) orderReceived,
-    required TResult Function(Order order, String? commuteTime) orderAccepted,
+    required TResult Function(Order order, bool freeOrder, String? commuteTime)
+        orderAccepted,
     required TResult Function(Order order, String? commuteTime) orderInProgress,
     required TResult Function(Order order) orderCompleted,
     required TResult Function(String message) error,
@@ -1225,7 +1257,8 @@ class _$ErrorImpl implements _Error {
     TResult? Function()? initial,
     TResult? Function()? loading,
     TResult? Function(Order order, String? commuteTime)? orderReceived,
-    TResult? Function(Order order, String? commuteTime)? orderAccepted,
+    TResult? Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult? Function(Order order, String? commuteTime)? orderInProgress,
     TResult? Function(Order order)? orderCompleted,
     TResult? Function(String message)? error,
@@ -1239,7 +1272,8 @@ class _$ErrorImpl implements _Error {
     TResult Function()? initial,
     TResult Function()? loading,
     TResult Function(Order order, String? commuteTime)? orderReceived,
-    TResult Function(Order order, String? commuteTime)? orderAccepted,
+    TResult Function(Order order, bool freeOrder, String? commuteTime)?
+        orderAccepted,
     TResult Function(Order order, String? commuteTime)? orderInProgress,
     TResult Function(Order order)? orderCompleted,
     TResult Function(String message)? error,

@@ -154,93 +154,95 @@ class _LocationWarningOverlayState extends State<_LocationWarningOverlay>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animationController,
-      builder: (context, child) {
-        return Positioned(
-          top: MediaQuery.of(context).padding.top + 10,
-          left: 16,
-          right: 16,
-          child: Transform.translate(
-            offset: Offset(0, _slideAnimation.value * 100),
-            child: Opacity(
-              opacity: _fadeAnimation.value,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.95),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.location_off,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+    return Material(
+      child: AnimatedBuilder(
+        animation: _animationController,
+        builder: (context, child) {
+          return Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16,
+            right: 16,
+            child: Transform.translate(
+              offset: Offset(0, _slideAnimation.value * 100),
+              child: Opacity(
+                opacity: _fadeAnimation.value,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.95),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.location_off,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Включите геолокацию',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Для работы приложения необходимо включить GPS',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            'Включите геолокацию',
-                            style: TextStyle(
+                          IconButton(
+                            onPressed: widget.onOpenSettings,
+                            icon: const Icon(
+                              Icons.settings,
                               color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                              size: 20,
                             ),
+                            tooltip: 'Открыть настройки',
                           ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Для работы приложения необходимо включить GPS',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
+                          IconButton(
+                            onPressed: widget.onDismiss,
+                            icon: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 20,
                             ),
+                            tooltip: 'Закрыть',
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          onPressed: widget.onOpenSettings,
-                          icon: const Icon(
-                            Icons.settings,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                          tooltip: 'Открыть настройки',
-                        ),
-                        IconButton(
-                          onPressed: widget.onDismiss,
-                          icon: const Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                          tooltip: 'Закрыть',
-                        ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

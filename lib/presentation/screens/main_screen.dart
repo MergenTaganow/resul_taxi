@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:taxi_service/core/network/api_client.dart';
+import 'package:taxi_service/core/services/taxometer_service.dart';
 import 'package:taxi_service/domain/entities/order.dart';
 import 'package:taxi_service/presentation/blocs/auth/auth_bloc.dart';
 import 'package:taxi_service/presentation/blocs/auth/auth_event.dart';
@@ -21,6 +23,7 @@ import 'package:taxi_service/presentation/screens/additional_settings_screen.dar
 
 import 'package:taxi_service/core/services/profile_service.dart';
 import 'package:taxi_service/core/mixins/location_warning_mixin.dart';
+import 'package:taxi_service/core/services/connectivity_service.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -33,8 +36,11 @@ class _MainScreenState extends State<MainScreen>
     with WidgetsBindingObserver, LocationWarningMixin {
   late ProfileService _profileService;
   late GpsService _gpsService;
+  late ConnectivityService _connectivityService;
   bool _isGpsEnabled = false;
+  bool _isConnected = false;
   double _currentBalance = 0.0;
+  late TaxometerService _taxometerService;
 
   @override
   void initState() {
@@ -42,9 +48,15 @@ class _MainScreenState extends State<MainScreen>
     WidgetsBinding.instance.addObserver(this);
     _profileService = getIt<ProfileService>();
     _gpsService = getIt<GpsService>();
+    _connectivityService = getIt<ConnectivityService>();
+    _taxometerService = getIt<TaxometerService>();
     _loadProfile();
     _initializeGpsMonitoring();
+    _initializeConnectivityMonitoring();
     _initializeBalanceMonitoring();
+    _taxometerService.addStateChangeListener(() {
+      setState(() {});
+    });
   }
 
   @override
@@ -81,6 +93,21 @@ class _MainScreenState extends State<MainScreen>
     // Get initial GPS status
     setState(() {
       _isGpsEnabled = _gpsService.isGpsEnabled;
+    });
+  }
+
+  void _initializeConnectivityMonitoring() {
+    _connectivityService.connectivityStream.listen((isConnected) {
+      if (mounted) {
+        setState(() {
+          _isConnected = isConnected;
+        });
+      }
+    });
+
+    // Get initial connectivity status
+    setState(() {
+      _isConnected = _connectivityService.isConnected;
     });
   }
 
@@ -149,8 +176,17 @@ class _MainScreenState extends State<MainScreen>
                       children: [
                         GestureDetector(
                           onTap: () => scaffoldKey.currentState?.openDrawer(),
-                          child:
-                              Icon(Icons.menu, color: Colors.white, size: 32),
+                          child: const Icon(Icons.menu,
+                              color: Colors.white, size: 32),
+                        ),
+                        const SizedBox(width: 10),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.asset(
+                            'assets/images/tiztaxi.png',
+                            width: 50,
+                            height: 50,
+                          ),
                         ),
                         const Spacer(),
                         GestureDetector(
@@ -198,63 +234,28 @@ class _MainScreenState extends State<MainScreen>
                           ),
                         ),
                         const SizedBox(width: 10),
-                        // Taxometer active indicator
-                        // Builder(
-                        //   builder: (context) {
-                        //     final taxometerService = getIt<TaxometerService>();
-                        //     if (taxometerService.isActive) {
-                        //       return Container(
-                        //         decoration: BoxDecoration(
-                        //           color: Colors.red.withOpacity(0.2),
-                        //           borderRadius: BorderRadius.circular(8),
-                        //           border: Border.all(
-                        //             color: Colors.red,
-                        //             width: 1,
-                        //           ),
-                        //         ),
-                        //         padding: const EdgeInsets.symmetric(
-                        //             horizontal: 8, vertical: 4),
-                        //         child: Row(
-                        //           mainAxisSize: MainAxisSize.min,
-                        //           children: [
-                        //             Icon(Icons.speed,
-                        //                 color: Colors.red, size: 16),
-                        //             const SizedBox(width: 4),
-                        //             Text('АКТИВЕН',
-                        //                 style: TextStyle(
-                        //                     color: Colors.red,
-                        //                     fontSize: 12,
-                        //                     fontWeight: FontWeight.bold)),
-                        //           ],
-                        //         ),
-                        //       );
-                        //     }
-                        //     return const SizedBox.shrink();
-                        //   },
-                        // ),
-                        // const SizedBox(width: 10),
-                        // Material(
-                        //   color: Colors.transparent,
-                        //   child: InkWell(
-                        //     borderRadius: BorderRadius.circular(16),
-                        //     onTap: () {},
-                        //     child: Container(
-                        //       decoration: BoxDecoration(
-                        //         color: Colors.redAccent.withOpacity(0.15),
-                        //         borderRadius: BorderRadius.circular(16),
-                        //         boxShadow: [
-                        //           BoxShadow(
-                        //             color: Colors.redAccent.withOpacity(0.18),
-                        //             blurRadius: 8,
-                        //           ),
-                        //         ],
-                        //       ),
-                        //       padding: const EdgeInsets.all(8),
-                        //       child: Icon(Icons.logout_rounded,
-                        //           color: Colors.redAccent, size: 28),
-                        //     ),
-                        //   ),
-                        // ),
+                        // Network Status Indicator
+                        GestureDetector(
+                          onTap: () async {
+                            await _connectivityService.testConnectivity();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: _isConnected
+                                  ? Colors.green.withOpacity(0.2)
+                                  : Colors.red.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Icon(
+                              _isConnected ? Icons.wifi : Icons.wifi_off,
+                              color: _isConnected
+                                  ? Colors.greenAccent
+                                  : Colors.redAccent,
+                              size: 20,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -265,6 +266,7 @@ class _MainScreenState extends State<MainScreen>
                           horizontal: 12, vertical: 8),
                       child: GridView.count(
                         crossAxisCount: 2,
+                        childAspectRatio: 1.2,
                         mainAxisSpacing: 28,
                         crossAxisSpacing: 16,
                         children: [
@@ -281,11 +283,18 @@ class _MainScreenState extends State<MainScreen>
                           _DashboardButton(
                             icon: Icons.speed_rounded,
                             label: 'Таксометр',
-                            iconColor: Colors.grey,
-                            onTap: () {
-                              // Taxometer is now self-contained, no service dependency
-                              // This will be handled by the order flow
-                            },
+                            iconColor: Colors.orange,
+                            onTap: _taxometerService.currentOrder != null
+                                ? () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const TaxometerScreen(),
+                                      ),
+                                    );
+                                    // Taxometer is now self-contained, no service dependency
+                                    // This will be handled by the order flow
+                                  }
+                                : null,
                           ),
                           // _DashboardButton(
                           //     icon: Icons.event_available_rounded,
@@ -372,6 +381,47 @@ class _MainScreenState extends State<MainScreen>
                 ],
               ),
             ),
+            // Network connectivity warning overlay
+            if (!_isConnected)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.9),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(
+                        Icons.wifi_off,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Нет подключения к интернету',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -419,7 +469,14 @@ class _MainScreenState extends State<MainScreen>
   }
 }
 
-class _AppDrawer extends StatelessWidget {
+class _AppDrawer extends StatefulWidget {
+  @override
+  State<_AppDrawer> createState() => _AppDrawerState();
+}
+
+class _AppDrawerState extends State<_AppDrawer> {
+  TextEditingController _messageController = TextEditingController();
+
   Future<Map<String, String>> _getDriverData() async {
     final prefs = await SharedPreferences.getInstance();
     return {
@@ -439,15 +496,15 @@ class _AppDrawer extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: Row(
+          title: const Row(
             children: [
               Icon(
                 Icons.bug_report_rounded,
                 color: Colors.orange,
                 size: 28,
               ),
-              const SizedBox(width: 12),
-              const Text(
+              SizedBox(width: 12),
+              Text(
                 'Написать админу',
                 style: TextStyle(
                   color: Colors.white,
@@ -457,23 +514,31 @@ class _AppDrawer extends StatelessWidget {
               ),
             ],
           ),
-          content: const Column(
+          content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Если вы столкнулись с проблемой в приложении, пожалуйста, сообщите нам об этом.',
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 16,
                 ),
               ),
-              SizedBox(height: 16),
-              Text(
+              const SizedBox(height: 16),
+              const Text(
                 'Мы рассмотрим ваше сообщение и постараемся решить проблему как можно скорее.',
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _messageController,
+                decoration: const InputDecoration(
+                  labelText: 'Письмо',
+                  fillColor: Colors.transparent,
                 ),
               ),
             ],
@@ -489,7 +554,7 @@ class _AppDrawer extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _openEmailClient(context);
+                _sendAppeal(context, _messageController.text);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
@@ -514,24 +579,8 @@ class _AppDrawer extends StatelessWidget {
     );
   }
 
-  void _openEmailClient(BuildContext context) {
-    // You can implement email client opening here
-    // For now, show a snackbar with contact information
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          'Пожалуйста, отправьте письмо на support@taksi.hakyky.site с описанием проблемы',
-          style: TextStyle(fontSize: 16),
-        ),
-        backgroundColor: Colors.orange,
-        duration: const Duration(seconds: 5),
-        action: SnackBarAction(
-          label: 'OK',
-          textColor: Colors.white,
-          onPressed: () {},
-        ),
-      ),
-    );
+  void _sendAppeal(BuildContext context, String message) {
+    getIt<ApiClient>().sendAppeal(message);
   }
 
   @override
@@ -571,7 +620,8 @@ class _AppDrawer extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.person, color: Colors.white, size: 24),
+                              const Icon(Icons.person,
+                                  color: Colors.white, size: 24),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -588,7 +638,7 @@ class _AppDrawer extends StatelessWidget {
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              Icon(Icons.directions_car,
+                              const Icon(Icons.directions_car,
                                   color: Colors.white70, size: 20),
                               const SizedBox(width: 8),
                               Text(
@@ -601,7 +651,7 @@ class _AppDrawer extends StatelessWidget {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(Icons.confirmation_number,
+                              const Icon(Icons.confirmation_number,
                                   color: Colors.white70, size: 20),
                               const SizedBox(width: 8),
                               Text(
@@ -869,42 +919,39 @@ class _DashboardButtonState extends State<_DashboardButton> {
                 : (widget.iconColor ?? Colors.white).withOpacity(0.18),
             highlightColor: Colors.transparent,
             onTap: widget.onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: (widget.iconColor ?? Colors.white)
+                        .withOpacity(isDisabled ? 0.08 : 0.13),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.all(12),
+                  child: Icon(widget.icon,
+                      size: 40,
                       color: (widget.iconColor ?? Colors.white)
-                          .withOpacity(isDisabled ? 0.08 : 0.13),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Icon(widget.icon,
-                        size: 44,
-                        color: (widget.iconColor ?? Colors.white)
-                            .withOpacity(isDisabled ? 0.5 : 1.0)),
+                          .withOpacity(isDisabled ? 0.5 : 1.0)),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(isDisabled ? 0.5 : 1.0),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withOpacity(0.18),
+                        blurRadius: 2,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    widget.label,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(isDisabled ? 0.5 : 1.0),
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.2,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withOpacity(0.18),
-                          blurRadius: 2,
-                        ),
-                      ],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
         ),
@@ -975,19 +1022,19 @@ class _DutyStatusDialogState extends State<_DutyStatusDialog> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Принимать заказы',
-                        style: TextStyle(color: Colors.white, fontSize: 16)),
-                    Switch(
-                      value: _onDuty,
-                      onChanged: _loading ? null : (val) => _setDutyStatus(val),
-                      activeColor: Colors.greenAccent,
-                      inactiveThumbColor: Colors.redAccent,
-                    ),
-                  ],
-                ),
+                // Row(
+                //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //   children: [
+                //     const Text('Принимать заказы',
+                //         style: TextStyle(color: Colors.white, fontSize: 16)),
+                //     Switch(
+                //       value: _onDuty,
+                //       onChanged: _loading ? null : (val) => _setDutyStatus(val),
+                //       activeColor: Colors.greenAccent,
+                //       inactiveThumbColor: Colors.redAccent,
+                //     ),
+                //   ],
+                // ),
                 if (_loading) ...[
                   const SizedBox(height: 16),
                   const CircularProgressIndicator(),

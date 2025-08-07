@@ -4,6 +4,7 @@ import 'package:taxi_service/core/di/injection.dart';
 import 'package:taxi_service/domain/entities/order.dart';
 import 'package:taxi_service/domain/entities/commute_type.dart';
 import 'package:taxi_service/domain/repositories/order_repository.dart';
+import 'package:taxi_service/presentation/blocs/districts/districts_cubit.dart';
 import 'package:taxi_service/presentation/widgets/order_card.dart';
 import 'package:taxi_service/presentation/blocs/order/order_bloc.dart';
 import 'package:taxi_service/presentation/blocs/order/order_event.dart';
@@ -107,7 +108,8 @@ class _FreeRequestsScreenState extends State<FreeRequestsScreen> {
     if (commuteTime != null && context.mounted) {
       // Accept the order with the selected commute time
       context.read<OrderBloc>().add(
-            OrderEvent.acceptOrder(order.id, order, commuteTime: commuteTime),
+            OrderEvent.acceptOrder(order.id, true, order,
+                commuteTime: commuteTime),
           );
 
       // Show success message
@@ -118,8 +120,10 @@ class _FreeRequestsScreenState extends State<FreeRequestsScreen> {
         ),
       );
 
+      // Reload the requests list to reflect the changes
+
       // Navigate back to previous screen
-      // Navigator.of(context).pop();
+      Navigator.of(context).pop();
     }
   }
 
@@ -720,6 +724,7 @@ class _CommuteTypeDialogState extends State<_CommuteTypeDialog> {
                                   .firstWhere(
                                       (type) => type.key == _selectedCommuteKey)
                                   .value;
+
                               Navigator.of(context).pop(commuteTime);
                             },
                       style: ElevatedButton.styleFrom(

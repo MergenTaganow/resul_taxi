@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taxi_service/core/di/injection.dart';
 import 'package:taxi_service/core/network/socket_client.dart';
+import 'package:taxi_service/core/services/taxometer_service.dart';
 import 'package:taxi_service/domain/entities/order.dart';
 import 'package:taxi_service/presentation/blocs/auth/auth_bloc.dart';
 import 'package:taxi_service/presentation/blocs/auth/auth_state.dart';
@@ -22,6 +24,11 @@ import 'dart:async';
 import 'package:taxi_service/core/services/sound_service.dart';
 import 'package:taxi_service/core/services/notification_listener_service.dart';
 import 'package:taxi_service/presentation/widgets/gps_monitor_widget.dart';
+import 'package:taxi_service/presentation/widgets/taxometer_overlay_widget.dart';
+import 'package:taxi_service/presentation/widgets/splash_screen.dart';
+import 'package:vibration/vibration.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class TaxiDriverApp extends StatefulWidget {
   const TaxiDriverApp({super.key});
@@ -31,7 +38,13 @@ class TaxiDriverApp extends StatefulWidget {
 }
 
 class _TaxiDriverAppState extends State<TaxiDriverApp> {
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  @override
+  void initState() {
+    super.initState();
+    getIt<TaxometerService>().addStateChangeListener(() {
+      setState(() {});
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,142 +64,166 @@ class _TaxiDriverAppState extends State<TaxiDriverApp> {
           BlocProvider(create: (_) => getIt<NotificationsBloc>()),
           BlocProvider(create: (_) => getIt<MessagesBloc>()),
         ],
-        child: GpsMonitorWidget(
-          child: MaterialApp(
-            navigatorKey: _navigatorKey,
-            title: 'Taxi Driver',
-            debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFF7C3AED),
-                primary: const Color(0xFF7C3AED),
-                secondary: const Color(0xFFB794F4),
-                surface: Colors.white,
-                background: Colors.grey[50]!,
-              ),
-              useMaterial3: true,
-              elevatedButtonTheme: ElevatedButtonThemeData(
-                style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+        child: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Stack(
+            children: [
+              MaterialApp(
+                navigatorKey: navigatorKey,
+                title: 'Taxi Driver',
+                debugShowCheckedModeBanner: false,
+                theme: ThemeData(
+                  colorScheme: ColorScheme.fromSeed(
+                    seedColor: const Color(0xFF7C3AED),
+                    primary: const Color(0xFF7C3AED),
+                    secondary: const Color(0xFFB794F4),
+                    surface: Colors.white,
+                    background: Colors.grey[50]!,
+                  ),
+                  useMaterial3: true,
+                  elevatedButtonTheme: ElevatedButtonThemeData(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  inputDecorationTheme: InputDecorationTheme(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
                 ),
-              ),
-              inputDecorationTheme: InputDecorationTheme(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-            ),
-            darkTheme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFF7C3AED),
-                brightness: Brightness.dark,
-                primary: const Color(0xFF7C3AED),
-                secondary: const Color(0xFFB794F4),
-                surface: const Color(0xFF22223A),
-                background: const Color(0xFF181829),
-              ),
-              useMaterial3: true,
-              elevatedButtonTheme: ElevatedButtonThemeData(
-                style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                darkTheme: ThemeData(
+                  colorScheme: ColorScheme.fromSeed(
+                    seedColor: const Color(0xFF7C3AED),
+                    brightness: Brightness.dark,
+                    primary: const Color(0xFF7C3AED),
+                    secondary: const Color(0xFFB794F4),
+                    surface: const Color(0xFF22223A),
+                    background: const Color(0xFF181829),
+                  ),
+                  useMaterial3: true,
+                  elevatedButtonTheme: ElevatedButtonThemeData(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  inputDecorationTheme: InputDecorationTheme(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFF22223A),
                   ),
                 ),
-              ),
-              inputDecorationTheme: InputDecorationTheme(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                filled: true,
-                fillColor: const Color(0xFF22223A),
-              ),
-            ),
-            themeMode: ThemeMode.dark,
-            home: MultiBlocListener(
-              listeners: [
-                BlocListener<AuthBloc, AuthState>(
-                  listener: (context, state) {
-                    state.maybeWhen(
-                      authenticated: (token) async {
-                        // Connect socket when authenticated
-                        if (token.isNotEmpty) {
-                          getIt<SocketClient>().setAuthToken(token);
-                          // Initialize notification listener service
-                          await NotificationListenerService.initialize(context);
-                        }
-                      },
-                      unauthenticated: () {
-                        // Disconnect socket when unauthenticated
-                        getIt<SocketClient>().disconnect();
-                        // Dispose notification listener service
-                        NotificationListenerService.dispose();
-                      },
-                      orElse: () {},
-                    );
-                  },
-                ),
-                BlocListener<OrderBloc, OrderState>(
-                  listener: (context, state) {
-                    state.maybeWhen(
-                      orderReceived: (order, commuteTime) {
-                        // Play voice announcement for new order with address
-                        String address =
-                            order.requestedAddress ?? 'неизвестный адрес';
-                        // getIt<SoundService>()
-                        //     .playNewOrderVoiceAnnouncement(address);
-                        showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (ctx) {
-                            final theme = Theme.of(ctx);
-                            return _OrderDialogWithCommuteTypes(order: order);
+                themeMode: ThemeMode.dark,
+                home: MultiBlocListener(
+                  listeners: [
+                    BlocListener<AuthBloc, AuthState>(
+                      listener: (context, state) {
+                        state.maybeWhen(
+                          authenticated: (token) async {
+                            // Connect socket when authenticated
+                            if (token.isNotEmpty) {
+                              getIt<SocketClient>().setAuthToken(token);
+                              // Initialize notification listener service
+                              await NotificationListenerService.initialize(
+                                  context);
+                            }
                           },
+                          unauthenticated: () {
+                            // Disconnect socket when unauthenticated
+                            getIt<SocketClient>().disconnect();
+                            // Dispose notification listener service
+                            NotificationListenerService.dispose();
+                          },
+                          orElse: () {},
                         );
                       },
-                      orElse: () {},
-                    );
-                  },
-                ),
-                BlocListener<OrderBloc, OrderState>(
-                  listener: (context, state) {
-                    state.maybeWhen(
-                      orderAccepted: (order, commuteTime) {
-                        // Play sound for order start
-                        getIt<SoundService>().playOrderStartSound();
-                        final commuteSeconds =
-                            (int.tryParse(commuteTime ?? '') ?? 0) ~/ 1000;
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => TaxometerScreen(
-                              arrivalCountdownSeconds: commuteSeconds,
-                              order: order,
-                            ),
-                          ),
+                    ),
+                    BlocListener<OrderBloc, OrderState>(
+                      listener: (context, state) {
+                        state.maybeWhen(
+                          orderReceived: (order, commuteTime) {
+                            // Play warning sound for new order
+                            getIt<SoundService>().playNewRequestWarningSound();
+
+                            // Play voice announcement for new order with address
+                            String address =
+                                order.requestedAddress ?? 'неизвестный адрес';
+                            // getIt<SoundService>()
+                            //     .playNewOrderVoiceAnnouncement(address);
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (ctx) {
+                                final theme = Theme.of(ctx);
+                                return _OrderDialogWithCommuteTypes(
+                                    order: order);
+                              },
+                            );
+                          },
+                          orElse: () {},
                         );
                       },
-                      orElse: () {},
-                    );
-                  },
+                    ),
+                    BlocListener<OrderBloc, OrderState>(
+                      listener: (context, state) {
+                        state.maybeWhen(
+                          orderAccepted: (order, freeOrder, commuteTime) {
+                            // Play sound for order start
+                            // getIt<SoundService>().playOrderStartSound();
+                            if (freeOrder) {
+                              context.read<DistrictsCubit>().fetchDistricts();
+                            }
+                            final commuteSeconds =
+                                (int.tryParse(commuteTime ?? '') ?? 0) ~/ 1000;
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => TaxometerScreen(
+                                  arrivalCountdownSeconds: commuteSeconds,
+                                  order: order,
+                                ),
+                              ),
+                            );
+                          },
+                          orElse: () {},
+                        );
+                      },
+                    ),
+                  ],
+                  child: BlocBuilder<AuthBloc, AuthState>(
+                    builder: (context, state) {
+                      return state.maybeWhen(
+                        authenticated: (_) => const MainScreen(),
+                        loading: () => const SplashScreen(),
+                        orElse: () => const LoginScreen(),
+                      );
+                    },
+                  ),
                 ),
-              ],
-              child: BlocBuilder<AuthBloc, AuthState>(
-                builder: (context, state) {
-                  return state.maybeWhen(
-                    authenticated: (_) => const MainScreen(),
-                    loading: () => const _LoadingScreen(),
-                    orElse: () => const LoginScreen(),
-                  );
-                },
               ),
-            ),
+              if (getIt<TaxometerService>().currentOrder != null &&
+                  !getIt<TaxometerService>().isTaxometerScreenActive)
+                // Taxometer overlay widget that appears on all screens
+                const Positioned(
+                  bottom: 20,
+                  right: 0,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: TaxometerOverlayWidget(),
+                  ),
+                ),
+            ],
           ),
         ));
   }
@@ -269,6 +306,8 @@ class _OrderDialogWithCommuteTypesState
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    getIt<SoundService>().audioPlayer.stop();
+    Vibration.cancel();
     super.dispose();
   }
 
@@ -706,6 +745,7 @@ class _OrderDialogWithCommuteTypesState
       context.read<OrderBloc>().add(
             OrderEvent.acceptOrder(
               widget.order.id,
+              false,
               widget.order,
               commuteTime: commuteTime,
             ),

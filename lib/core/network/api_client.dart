@@ -13,7 +13,8 @@ class ApiClient {
   ApiClient() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'https://taksi.hakyky.site',
+        // baseUrl: 'http://46.173.17.202:9091',
+        baseUrl: 'http://46.173.17.202:9091',
         contentType: 'application/json',
       ),
     );
@@ -131,6 +132,13 @@ class ApiClient {
     return false;
   }
 
+  Future<Response> sendAppeal(String message) async {
+    if (_authToken == null) {
+      await _loadTokens();
+    }
+    return _dio.post('/api/v1/driver-app/appeal', data: {'note': message});
+  }
+
   Future<Response> getProfile() async {
     if (_authToken == null) {
       await _loadTokens();
@@ -163,8 +171,7 @@ class ApiClient {
   // Unregister a district for the driver
   Future<Response> unregisterDistrict(int districtId) async {
     return _dio.delete(
-      '/api/v1/driver-app/drivers/register-district',
-      data: {'district_id': districtId},
+      '/api/v1/driver-app/drivers/${districtId}/districts',
     );
   }
 
@@ -263,12 +270,9 @@ class ApiClient {
     );
   }
 
-  Future<Map<String,dynamic>> getRegionTariffs(int tarrifId) async {
-    final response = await _dio.get(
-        '/api/v1/driver-app/tarrifs?tarrif_id=$tarrifId');
-    return response.data['payload'] is List
-        ? response.data['payload']
-        : [response.data['payload']];
+  Future<Map<String, dynamic>> getRegionTariffs(int tarrifId) async {
+    final response = await _dio.get('/api/v1/driver-app/tarrifs/$tarrifId');
+    return response.data['payload'];
   }
 
   Future<List<dynamic>> getMessages() async {
@@ -276,7 +280,7 @@ class ApiClient {
         .subtract(Duration(days: 3, hours: 1))
         .millisecondsSinceEpoch;
     final response = await _dio.get(
-        '/api/v1/driver-app/chats?order_direction=desc&order_by=id&min_created_at=$lastThreeDays');
+        '/api/v1/driver-app/chats?limit=100&page=0&order_direction=desc&order_by=id&min_created_at=$lastThreeDays');
 
     return response.data['payload'] is List
         ? response.data['payload']
@@ -288,7 +292,7 @@ class ApiClient {
         .subtract(Duration(days: 3, hours: 1))
         .millisecondsSinceEpoch;
     final response = await _dio.get(
-        '/api/v1/driver-app/notifications?order_direction=desc&order_by=id&min_created_at=$lastThreeDays');
+        '/api/v1/driver-app/notifications?limit=100&page=0&order_direction=desc&order_by=id&min_created_at=$lastThreeDays');
     return response.data['payload'] is List
         ? response.data['payload']
         : [response.data['payload']];

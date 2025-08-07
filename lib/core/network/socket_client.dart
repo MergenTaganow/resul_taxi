@@ -1,14 +1,22 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:geolocator/geolocator.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:taxi_service/core/di/injection.dart';
+import 'package:taxi_service/core/services/gps_service.dart';
+import 'package:taxi_service/core/services/taxometer_service.dart';
+import 'package:taxi_service/core/services/sound_service.dart';
 import 'package:taxi_service/core/utils/location_helper.dart';
 import 'package:taxi_service/domain/entities/order.dart';
 import 'package:taxi_service/domain/entities/notification.dart';
 import 'package:taxi_service/domain/entities/message.dart';
 
 class SocketClient {
-  static const String _apiRoot = 'taksi.hakyky.site:9094';
+  // static const String _apiRoot = '46.173.17.202:9094';
+  static const String _apiRoot = '46.173.17.202:9094';
   static const bool _useHttps = false;
   IO.Socket? _socket;
   final _orderController = StreamController<Order>.broadcast();
@@ -17,7 +25,11 @@ class SocketClient {
   String? _authToken;
   Timer? _locationTimer;
   bool _isConnected = false;
+  Position? _currentPosition;
+  StreamSubscription<Position>? _locationSubscription;
   DateTime? _lastLocationSent;
+  final Connectivity _connectivity = Connectivity();
+  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
 
   Stream<Order> get orderStream => _orderController.stream;
   Stream<Notification> get notificationStream => _notificationController.stream;
@@ -26,6 +38,24 @@ class SocketClient {
   void setAuthToken(String token) {
     _authToken = token;
     _connect();
+  }
+
+  void initializeConnectivityMonitoring() {
+    _connectivitySubscription?.cancel();
+    _connectivitySubscription =
+        _connectivity.onConnectivityChanged.listen((result) {
+      if (result != ConnectivityResult.none) {
+        print(
+            '[SOCKET.IO] Internet connection restored, attempting to reconnect...');
+        if (_authToken != null && !_isConnected) {
+          _connect();
+        }
+      } else {
+        print('[SOCKET.IO] Internet connection lost');
+        _isConnected = false;
+        _stopLocationUpdates();
+      }
+    });
   }
 
   // Method to handle token refresh and reconnect
@@ -67,8 +97,11 @@ class SocketClient {
   void _connect() {
     if (_socket != null) {
       print('[SOCKET.IO] Disconnecting existing socket...');
+      _locationTimer?.cancel();
       _socket!.disconnect();
     }
+
+    _initializeGpsMonitoring();
 
     if (_authToken == null) {
       print('[SOCKET.IO] No auth token available, cannot connect');
@@ -88,6 +121,24 @@ class SocketClient {
     _socket!.onConnect((_) {
       print('[SOCKET.IO] Connected!');
       _isConnected = true;
+
+      // Map<String, dynamic> orderMap = {
+      //   'id': 1,
+      //   'status': 'accepted',
+      //   'district_slug': 'howdan_w',
+      //   'district_id': 1,
+      //   'tarrif_id': 1,
+      //   'tarrif_slug': 'standart day',
+      //   'phonenumber': '+99362626622',
+      //   'driver_notified_time': '345345345',
+      //   'note': 'bellik',
+      //   'created_at': '123123123123',
+      //   'requested_address': 'Howdan W',
+      //   'requested_time': '123123123123',
+      //   'approx_price': 100,
+      // };
+      // final order = Order.fromJson(orderMap);
+      // _orderController.add(order);
       _startLocationUpdates();
     });
 
@@ -124,6 +175,10 @@ class SocketClient {
           return;
         }
         final order = Order.fromJson(orderMap);
+
+        // Play warning sound when new request is received
+        getIt<SoundService>().playNewRequestWarningSound();
+
         _orderController.add(order);
       } catch (e, st) {
         print('[SOCKET.IO] Error parsing Order: $e\n$st');
@@ -131,7 +186,7 @@ class SocketClient {
     });
 
     _socket!.on('request-initial-price', (data) {
-      print('[SOCKET.IO] Received request: $data');
+      print('[SOCKET.IO] Modified initial price: $data');
       try {
         Map<String, dynamic> orderMap;
         if (data is Map<String, dynamic>) {
@@ -142,27 +197,21 @@ class SocketClient {
           print('[SOCKET.IO] Unknown data type:  [${data.runtimeType}]');
           return;
         }
-        final order = Order.fromJson(orderMap);
-        _orderController.add(order);
+        // final order = Order.fromJson(orderMap);
+        final modifiedInitialPrice = orderMap['modified_initial_price'];
+        if (modifiedInitialPrice != null) {
+          getIt.get<TaxometerService>().modifiedInitialPrice(
+              modifiedInitialPrice.toDouble(), orderMap['note'] ?? '');
+        }
       } catch (e, st) {
         print('[SOCKET.IO] Error parsing Order: $e\n$st');
       }
     });
 
     _socket!.on('request-cancelled', (data) {
-      print('[SOCKET.IO] Received request: $data');
+      print('[SOCKET.IO] Received request cancelled: $data');
       try {
-        Map<String, dynamic> orderMap;
-        if (data is Map<String, dynamic>) {
-          orderMap = data;
-        } else if (data is String) {
-          orderMap = jsonDecode(data) as Map<String, dynamic>;
-        } else {
-          print('[SOCKET.IO] Unknown data type:  [${data.runtimeType}]');
-          return;
-        }
-        final order = Order.fromJson(orderMap);
-        _orderController.add(order);
+        getIt.get<TaxometerService>().cancelRequest(data);
       } catch (e, st) {
         print('[SOCKET.IO] Error parsing Order: $e\n$st');
       }
@@ -218,9 +267,24 @@ class SocketClient {
     _socket!.connect();
   }
 
+  void _initializeGpsMonitoring() {
+    LocationSettings locationSettings;
+    locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 5,
+    );
+    // _locationSubscription =
+    //     Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+    //   (Position position) {
+    //     _currentPosition = position;
+    //   },
+    // );
+  }
+
   void _startLocationUpdates() {
     _stopLocationUpdates(); // Stop any existing timer
     _locationTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      print(_locationTimer!.tick.toString() + ' ticks');
       if (_isConnected) {
         _sendLocationUpdate();
       }
@@ -237,25 +301,26 @@ class SocketClient {
   Future<void> _sendLocationUpdate() async {
     try {
       // Throttle location updates to prevent too frequent requests
-      if (_lastLocationSent != null &&
-          DateTime.now().difference(_lastLocationSent!).inSeconds < 8) {
-        print('[SOCKET.IO] Location update throttled - too frequent');
-        return;
-      }
+      // if (_lastLocationSent != null &&
+      //     DateTime.now().difference(_lastLocationSent!).inSeconds < 3) {
+      //   print('[SOCKET.IO] Location update throttled - too frequent');
+      //   return;
+      // }
 
       // Try to get last known position first to reduce frequency
-      Position? position = await LocationHelper.getCurrentLocation();
-
-      if (position == null) {
+      if (_currentPosition == null) {
         print(
             '[SOCKET.IO] Could not get location - permissions or services disabled');
         return;
       }
 
+      if (await LocationHelper.isLocationServiceEnabled()) {
+        _currentPosition = await Geolocator.getCurrentPosition();
+      }
       // Prepare location data
       final locationData = {
-        'latitude': position.latitude,
-        'longitude': position.longitude,
+        'latitude': _currentPosition!.latitude,
+        'longitude': _currentPosition!.longitude,
       };
 
       // Send location via Socket.IO
@@ -276,6 +341,7 @@ class SocketClient {
   }
 
   void dispose() {
+    _connectivitySubscription?.cancel();
     disconnect();
     _orderController.close();
     _notificationController.close();
@@ -294,13 +360,13 @@ class SocketClient {
   }
 
   // Manual control methods for location updates
-  void startLocationUpdates() {
-    if (_isConnected) {
-      _startLocationUpdates();
-    } else {
-      print('[SOCKET.IO] Cannot start location updates - not connected');
-    }
-  }
+  // void startLocationUpdates() {
+  //   if (_isConnected) {
+  //     _startLocationUpdates();
+  //   } else {
+  //     print('[SOCKET.IO] Cannot start location updates - not connected');
+  //   }
+  // }
 
   void stopLocationUpdates() {
     _stopLocationUpdates();

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:taxi_service/core/di/injection.dart';
 import 'package:taxi_service/domain/repositories/auth_repository.dart';
 import 'package:taxi_service/core/mixins/location_warning_mixin.dart';
+import 'package:taxi_service/presentation/screens/gps_debug_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -32,6 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   void initState() {
     super.initState();
     _fetchProfileAndSettings();
+    _setDutyStatus(true);
   }
 
   Future<void> _fetchProfileAndSettings() async {
@@ -73,30 +76,6 @@ class _SettingsScreenState extends State<SettingsScreen>
           .setDutyStatus(onDuty ? 'on_duty' : 'off_duty');
       setState(() {
         _onDuty = onDuty;
-      });
-    } catch (e) {
-      setState(() {
-        _error = 'Ошибка при обновлении статуса';
-      });
-    } finally {
-      setState(() {
-        _dutyLoading = false;
-      });
-    }
-  }
-
-  Future<void> _setAutoMode(bool autoMode) async {
-    setState(() {
-      _dutyLoading = true;
-      _error = null;
-    });
-    try {
-      // Update duty status based on auto mode
-      await getIt<AuthRepository>()
-          .setDutyStatus(autoMode ? 'on_duty' : 'off_duty');
-      setState(() {
-        _autoMode = autoMode;
-        _onDuty = autoMode;
       });
     } catch (e) {
       setState(() {
@@ -194,25 +173,101 @@ class _SettingsScreenState extends State<SettingsScreen>
                                   activeColor: Colors.greenAccent,
                                   inactiveThumbColor: Colors.redAccent,
                                 )
-                              : Text(
-                                  setting['description'].contains('Commute')
-                                      ? (int.parse(setting['value']) /
-                                                  1000 /
-                                                  60)
-                                              .round()
-                                              .toString() +
-                                          ' мин'
-                                      : setting['value'].toString(),
-                                  style: const TextStyle(
-                                    color: Colors.greenAccent,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                              : Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      setting['description'].contains('Commute')
+                                          ? (int.parse(setting['value']) /
+                                                      1000 /
+                                                      60)
+                                                  .round()
+                                                  .toString() +
+                                              ' мин'
+                                          : setting['value'].toString(),
+                                      style: const TextStyle(
+                                        color: Colors.greenAccent,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    if (setting['key'] == 'contacts') ...[
+                                      const SizedBox(width: 8),
+                                      GestureDetector(
+                                        onTap: () async {
+                                          final cleanPhone = setting['value']
+                                              .replaceAll(
+                                                  RegExp(r'[\s\-\(\)]'), '');
+                                          final url = 'tel:$cleanPhone';
+                                          await launchUrl(Uri.parse(url));
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 8),
+                                          child: CircleAvatar(
+                                            backgroundColor: Colors.green,
+                                            radius: 26,
+                                            child: const Icon(Icons.call,
+                                                color: Colors.white, size: 16),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                         ),
                       ),
                     )),
               ],
+              const SizedBox(height: 32),
+
+              // GPS Debug Section
+              const Text(
+                'Отладка',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                color: Colors.white.withOpacity(0.08),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 0,
+                child: ListTile(
+                  leading: const Icon(Icons.gps_fixed,
+                      color: Colors.blueAccent, size: 32),
+                  title: const Text(
+                    'GPS Debug',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Test GPS accuracy and movement detection',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                    ),
+                  ),
+                  trailing:
+                      const Icon(Icons.arrow_forward_ios, color: Colors.grey),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const GpsDebugScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),

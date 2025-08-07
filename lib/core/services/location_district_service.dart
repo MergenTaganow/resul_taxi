@@ -75,9 +75,7 @@ class LocationDistrictService {
 
     // Get initial position
     try {
-      _currentPosition = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+      _currentPosition = await Geolocator.getCurrentPosition();
       _locationController.add(_currentPosition!);
     } catch (e) {
       print('Error getting initial position: $e');
@@ -87,9 +85,7 @@ class LocationDistrictService {
     _locationTimer?.cancel();
     _locationTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
       try {
-        Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        );
+        Position position = await Geolocator.getCurrentPosition();
         _currentPosition = position;
         _locationController.add(position);
       } catch (e) {

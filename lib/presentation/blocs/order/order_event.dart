@@ -6,7 +6,7 @@ part 'order_event.freezed.dart';
 @freezed
 class OrderEvent with _$OrderEvent {
   const factory OrderEvent.orderReceived(Order order) = OrderReceivedEvent;
-  const factory OrderEvent.acceptOrder(int orderId, Order order,
+  const factory OrderEvent.acceptOrder(int orderId, bool freeOrder, Order order,
       {required String commuteTime}) = AcceptOrderEvent;
   const factory OrderEvent.rejectOrder(int orderId) = RejectOrderEvent;
   const factory OrderEvent.startOrder(int orderId, Order order) =

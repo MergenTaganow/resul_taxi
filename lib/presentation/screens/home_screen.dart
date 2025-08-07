@@ -85,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> with LocationWarningMixin {
           return state.maybeWhen(
             orderReceived: (order, commuteTime) =>
                 _buildIncomingOrder(context, order),
-            orderAccepted: (order, commuteTime) =>
+            orderAccepted: (order, freeOrder, commuteTime) =>
                 _buildOrderTracking(context, order, false),
             orderInProgress: (order, commuteTime) =>
                 _buildOrderTracking(context, order, true),
@@ -295,7 +295,8 @@ class _HomeScreenState extends State<HomeScreen> with LocationWarningMixin {
                             );
                             if (commuteTime != null) {
                               context.read<OrderBloc>().add(
-                                    OrderEvent.acceptOrder(order.id, order,
+                                    OrderEvent.acceptOrder(
+                                        order.id, false, order,
                                         commuteTime: commuteTime),
                                   );
                             }

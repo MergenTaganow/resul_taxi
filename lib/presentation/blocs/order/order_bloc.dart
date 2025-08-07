@@ -34,7 +34,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       emit(const OrderState.loading());
       await _orderRepository.acceptOrder(event.orderId,
           commuteTime: event.commuteTime);
-      emit(OrderState.orderAccepted(event.order,
+      emit(OrderState.orderAccepted(event.order, event.freeOrder,
           commuteTime: event.commuteTime));
       // Navigation logic will be handled in the UI (BlocListener)
     } catch (e) {

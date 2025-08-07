@@ -9,7 +9,7 @@ class OrderState with _$OrderState {
   const factory OrderState.loading() = _Loading;
   const factory OrderState.orderReceived(Order order, {String? commuteTime}) =
       _OrderReceived;
-  const factory OrderState.orderAccepted(Order order, {String? commuteTime}) =
+  const factory OrderState.orderAccepted(Order order, bool freeOrder, {String? commuteTime}) =
       _OrderAccepted;
   const factory OrderState.orderInProgress(Order order, {String? commuteTime}) =
       _OrderInProgress;
