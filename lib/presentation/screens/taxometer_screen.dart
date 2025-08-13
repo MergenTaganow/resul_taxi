@@ -9,15 +9,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/utils/location_helper.dart';
 import 'package:taxi_service/core/network/api_client.dart';
 import 'package:taxi_service/core/di/injection.dart';
-import 'package:taxi_service/core/services/sound_service.dart';
 import 'package:taxi_service/core/mixins/location_warning_mixin.dart';
-import 'package:taxi_service/core/services/gps_service.dart';
-
 import 'package:taxi_service/core/services/profile_service.dart';
 import 'package:taxi_service/core/services/taxometer_service.dart';
 import 'package:taxi_service/domain/entities/order.dart';
 import 'package:taxi_service/presentation/widgets/circular_countdown_widget.dart';
-import 'dart:convert';
 
 class TaxometerScreen extends StatefulWidget {
   final int? arrivalCountdownSeconds;
