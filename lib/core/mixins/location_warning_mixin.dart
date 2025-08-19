@@ -20,7 +20,9 @@ mixin LocationWarningMixin<T extends StatefulWidget> on State<T> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Update context when dependencies change (e.g., screen rotation)
-    _locationWarningService?.setContext(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _locationWarningService?.setContext(context);
+    });
   }
 
   @override

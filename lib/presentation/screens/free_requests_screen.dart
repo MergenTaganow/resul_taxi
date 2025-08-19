@@ -10,10 +10,11 @@ import 'package:taxi_service/presentation/blocs/order/order_bloc.dart';
 import 'package:taxi_service/presentation/blocs/order/order_event.dart';
 import 'dart:ui';
 
+import '../../core/services/taxometer_service.dart';
+
 class FreeRequestsScreen extends StatefulWidget {
   final int districtId;
-  const FreeRequestsScreen({Key? key, required this.districtId})
-      : super(key: key);
+  const FreeRequestsScreen({Key? key, required this.districtId}) : super(key: key);
 
   @override
   State<FreeRequestsScreen> createState() => _FreeRequestsScreenState();
@@ -41,8 +42,7 @@ class _FreeRequestsScreenState extends State<FreeRequestsScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels ==
-        _scrollController.position.maxScrollExtent) {
+    if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent) {
       if (!_isLoading && _hasMoreData) {
         _loadMoreOrders();
       }
@@ -64,8 +64,8 @@ class _FreeRequestsScreenState extends State<FreeRequestsScreen> {
     });
 
     try {
-      final newOrders = await getIt<OrderRepository>()
-          .getAvailableOrders(widget.districtId, page: _currentPage);
+      final newOrders =
+          await getIt<OrderRepository>().getAvailableOrders(widget.districtId, page: _currentPage);
 
       setState(() {
         if (isRefresh) {
@@ -73,8 +73,7 @@ class _FreeRequestsScreenState extends State<FreeRequestsScreen> {
         } else {
           _orders.addAll(newOrders);
         }
-        _hasMoreData =
-            newOrders.length >= 20; // Using 20 items per page (API default)
+        _hasMoreData = newOrders.length >= 20; // Using 20 items per page (API default)
         _isLoading = false;
         _error = null;
       });
@@ -108,8 +107,7 @@ class _FreeRequestsScreenState extends State<FreeRequestsScreen> {
     if (commuteTime != null && context.mounted) {
       // Accept the order with the selected commute time
       context.read<OrderBloc>().add(
-            OrderEvent.acceptOrder(order.id, true, order,
-                commuteTime: commuteTime),
+            OrderEvent.acceptOrder(order.id, true, order, commuteTime: commuteTime),
           );
 
       // Show success message
@@ -422,6 +420,8 @@ class _CommuteTypeDialogState extends State<_CommuteTypeDialog> {
     try {
       final repo = getIt<OrderRepository>();
       final types = await repo.getCommuteTypes();
+      getIt<TaxometerService>().setTimeForDrivingToWaiting(
+          int.parse(types.firstWhere((e) => e.key == "commute_for_waiting").value));
       setState(() {
         _commuteTypes = types;
         _loading = false;
@@ -573,8 +573,7 @@ class _CommuteTypeDialogState extends State<_CommuteTypeDialog> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                widget.order.requestedAddress ??
-                                    'Адрес не указан',
+                                widget.order.requestedAddress ?? 'Адрес не указан',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 20,
@@ -595,8 +594,7 @@ class _CommuteTypeDialogState extends State<_CommuteTypeDialog> {
                             height: 120,
                             child: const Center(
                               child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.orange),
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
                               ),
                             ),
                           )
@@ -606,8 +604,7 @@ class _CommuteTypeDialogState extends State<_CommuteTypeDialog> {
                                 decoration: BoxDecoration(
                                   color: Colors.red.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                      color: Colors.red.withOpacity(0.3)),
+                                  border: Border.all(color: Colors.red.withOpacity(0.3)),
                                 ),
                                 child: Text(
                                   _error!,
@@ -626,53 +623,46 @@ class _CommuteTypeDialogState extends State<_CommuteTypeDialog> {
                                     ),
                                   ),
                                   const SizedBox(height: 16),
-                                  ...?_commuteTypes?.map((type) => Container(
-                                        margin:
-                                            const EdgeInsets.only(bottom: 8),
-                                        decoration: BoxDecoration(
-                                          color: _selectedCommuteKey == type.key
-                                              ? Colors.orange.withOpacity(0.2)
-                                              : Colors.white.withOpacity(0.05),
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: _selectedCommuteKey ==
-                                                    type.key
-                                                ? Colors.orange
-                                                : Colors.white.withOpacity(0.1),
-                                            width:
-                                                _selectedCommuteKey == type.key
-                                                    ? 2
-                                                    : 1,
-                                          ),
-                                        ),
-                                        child: RadioListTile<String>(
-                                          selectedTileColor: Colors.orange,
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 4,
-                                          ),
-                                          title: Text(
-                                            _formatCommuteTime(type.value),
-                                            style: TextStyle(
-                                              color: _selectedCommuteKey ==
-                                                      type.key
-                                                  ? Colors.orange.shade200
-                                                  : Colors.white,
-                                              fontWeight: _selectedCommuteKey ==
-                                                      type.key
-                                                  ? FontWeight.w600
-                                                  : FontWeight.normal,
+                                  ...?_commuteTypes?.map((type) => type.key == 'commute_for_waiting'
+                                      ? Container()
+                                      : Container(
+                                          margin: const EdgeInsets.only(bottom: 8),
+                                          decoration: BoxDecoration(
+                                            color: _selectedCommuteKey == type.key
+                                                ? Colors.orange.withOpacity(0.2)
+                                                : Colors.white.withOpacity(0.05),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: _selectedCommuteKey == type.key
+                                                  ? Colors.orange
+                                                  : Colors.white.withOpacity(0.1),
+                                              width: _selectedCommuteKey == type.key ? 2 : 1,
                                             ),
                                           ),
-                                          value: type.key,
-                                          groupValue: _selectedCommuteKey,
-                                          onChanged: (val) => setState(
-                                              () => _selectedCommuteKey = val),
-                                          activeColor: Colors.orange,
-                                        ),
-                                      )),
+                                          child: RadioListTile<String>(
+                                            selectedTileColor: Colors.orange,
+                                            contentPadding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 4,
+                                            ),
+                                            title: Text(
+                                              _formatCommuteTime(type.value),
+                                              style: TextStyle(
+                                                color: _selectedCommuteKey == type.key
+                                                    ? Colors.orange.shade200
+                                                    : Colors.white,
+                                                fontWeight: _selectedCommuteKey == type.key
+                                                    ? FontWeight.w600
+                                                    : FontWeight.normal,
+                                              ),
+                                            ),
+                                            value: type.key,
+                                            groupValue: _selectedCommuteKey,
+                                            onChanged: (val) =>
+                                                setState(() => _selectedCommuteKey = val),
+                                            activeColor: Colors.orange,
+                                          ),
+                                        )),
                                 ],
                               ),
                   ],
@@ -721,8 +711,7 @@ class _CommuteTypeDialogState extends State<_CommuteTypeDialog> {
                           ? null
                           : () {
                               final commuteTime = _commuteTypes!
-                                  .firstWhere(
-                                      (type) => type.key == _selectedCommuteKey)
+                                  .firstWhere((type) => type.key == _selectedCommuteKey)
                                   .value;
 
                               Navigator.of(context).pop(commuteTime);

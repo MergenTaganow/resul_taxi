@@ -26,6 +26,7 @@ import 'package:taxi_service/core/services/notification_listener_service.dart';
 import 'package:taxi_service/presentation/widgets/gps_monitor_widget.dart';
 import 'package:taxi_service/presentation/widgets/taxometer_overlay_widget.dart';
 import 'package:taxi_service/presentation/widgets/splash_screen.dart';
+import '../core/services/background_service.dart';
 import 'package:vibration/vibration.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -41,8 +42,14 @@ class _TaxiDriverAppState extends State<TaxiDriverApp> {
   @override
   void initState() {
     super.initState();
-    getIt<TaxometerService>().addStateChangeListener(() {
-      setState(() {});
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+// Request permissions and initialize the service.
+      requestPermissions();
+      initBackgroundService();
+      getIt<TaxometerService>().addStateChangeListener(() {
+        setState(() {});
+      });
     });
   }
 
@@ -83,8 +90,7 @@ class _TaxiDriverAppState extends State<TaxiDriverApp> {
                   useMaterial3: true,
                   elevatedButtonTheme: ElevatedButtonThemeData(
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 32, vertical: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -110,8 +116,7 @@ class _TaxiDriverAppState extends State<TaxiDriverApp> {
                   useMaterial3: true,
                   elevatedButtonTheme: ElevatedButtonThemeData(
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 32, vertical: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -136,8 +141,7 @@ class _TaxiDriverAppState extends State<TaxiDriverApp> {
                             if (token.isNotEmpty) {
                               getIt<SocketClient>().setAuthToken(token);
                               // Initialize notification listener service
-                              await NotificationListenerService.initialize(
-                                  context);
+                              await NotificationListenerService.initialize(context);
                             }
                           },
                           unauthenticated: () {
@@ -158,8 +162,7 @@ class _TaxiDriverAppState extends State<TaxiDriverApp> {
                             getIt<SoundService>().playNewRequestWarningSound();
 
                             // Play voice announcement for new order with address
-                            String address =
-                                order.requestedAddress ?? 'неизвестный адрес';
+                            String address = order.requestedAddress ?? 'неизвестный адрес';
                             // getIt<SoundService>()
                             //     .playNewOrderVoiceAnnouncement(address);
                             showDialog(
@@ -167,8 +170,7 @@ class _TaxiDriverAppState extends State<TaxiDriverApp> {
                               barrierDismissible: false,
                               builder: (ctx) {
                                 final theme = Theme.of(ctx);
-                                return _OrderDialogWithCommuteTypes(
-                                    order: order);
+                                return _OrderDialogWithCommuteTypes(order: order);
                               },
                             );
                           },
@@ -185,8 +187,7 @@ class _TaxiDriverAppState extends State<TaxiDriverApp> {
                             if (freeOrder) {
                               context.read<DistrictsCubit>().fetchDistricts();
                             }
-                            final commuteSeconds =
-                                (int.tryParse(commuteTime ?? '') ?? 0) ~/ 1000;
+                            final commuteSeconds = (int.tryParse(commuteTime ?? '') ?? 0) ~/ 1000;
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => TaxometerScreen(
@@ -280,12 +281,10 @@ class _OrderDialogWithCommuteTypes extends StatefulWidget {
   const _OrderDialogWithCommuteTypes({required this.order});
 
   @override
-  State<_OrderDialogWithCommuteTypes> createState() =>
-      _OrderDialogWithCommuteTypesState();
+  State<_OrderDialogWithCommuteTypes> createState() => _OrderDialogWithCommuteTypesState();
 }
 
-class _OrderDialogWithCommuteTypesState
-    extends State<_OrderDialogWithCommuteTypes> {
+class _OrderDialogWithCommuteTypesState extends State<_OrderDialogWithCommuteTypes> {
   List<CommuteType>? _commuteTypes;
   String? _selectedCommuteKey;
   bool _isLoading = false;
@@ -341,6 +340,8 @@ class _OrderDialogWithCommuteTypesState
     try {
       final repo = getIt<OrderRepository>();
       final types = await repo.getCommuteTypes();
+      getIt<TaxometerService>().setTimeForDrivingToWaiting(
+          int.parse(types.firstWhere((e) => e.key == "commute_for_waiting").value));
       setState(() {
         _commuteTypes = types;
         _loading = false;
@@ -401,16 +402,12 @@ class _OrderDialogWithCommuteTypesState
           ),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isUrgent
-                ? Colors.red.withOpacity(0.5)
-                : Colors.white.withOpacity(0.1),
+            color: isUrgent ? Colors.red.withOpacity(0.5) : Colors.white.withOpacity(0.1),
             width: isUrgent ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: isUrgent
-                  ? Colors.red.withOpacity(0.3)
-                  : Colors.black.withOpacity(0.5),
+              color: isUrgent ? Colors.red.withOpacity(0.3) : Colors.black.withOpacity(0.5),
               blurRadius: isUrgent ? 20 : 15,
               spreadRadius: isUrgent ? 2 : 0,
             ),
@@ -536,8 +533,7 @@ class _OrderDialogWithCommuteTypesState
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                widget.order.requestedAddress ??
-                                    'Адрес не указан',
+                                widget.order.requestedAddress ?? 'Адрес не указан',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 40,
@@ -557,8 +553,7 @@ class _OrderDialogWithCommuteTypesState
                             height: 120,
                             child: const Center(
                               child: CircularProgressIndicator(
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.blue),
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                               ),
                             ),
                           )
@@ -568,8 +563,7 @@ class _OrderDialogWithCommuteTypesState
                                 decoration: BoxDecoration(
                                   color: Colors.red.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                      color: Colors.red.withOpacity(0.3)),
+                                  border: Border.all(color: Colors.red.withOpacity(0.3)),
                                 ),
                                 child: Text(
                                   _error!,
@@ -588,53 +582,46 @@ class _OrderDialogWithCommuteTypesState
                                     ),
                                   ),
                                   const SizedBox(height: 16),
-                                  ...?_commuteTypes?.map((type) => Container(
-                                        margin:
-                                            const EdgeInsets.only(bottom: 8),
-                                        decoration: BoxDecoration(
-                                          color: _selectedCommuteKey == type.key
-                                              ? Colors.orange.withOpacity(0.2)
-                                              : Colors.white.withOpacity(0.05),
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: _selectedCommuteKey ==
-                                                    type.key
-                                                ? Colors.orange
-                                                : Colors.white.withOpacity(0.1),
-                                            width:
-                                                _selectedCommuteKey == type.key
-                                                    ? 2
-                                                    : 1,
-                                          ),
-                                        ),
-                                        child: RadioListTile<String>(
-                                          selectedTileColor: Colors.orange,
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 4,
-                                          ),
-                                          title: Text(
-                                            _formatCommuteTime(type.value),
-                                            style: TextStyle(
-                                              color: _selectedCommuteKey ==
-                                                      type.key
-                                                  ? Colors.orange.shade200
-                                                  : Colors.white,
-                                              fontWeight: _selectedCommuteKey ==
-                                                      type.key
-                                                  ? FontWeight.w600
-                                                  : FontWeight.normal,
+                                  ...?_commuteTypes?.map((type) => type.key == "commute_for_waiting"
+                                      ? Container()
+                                      : Container(
+                                          margin: const EdgeInsets.only(bottom: 8),
+                                          decoration: BoxDecoration(
+                                            color: _selectedCommuteKey == type.key
+                                                ? Colors.orange.withOpacity(0.2)
+                                                : Colors.white.withOpacity(0.05),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: _selectedCommuteKey == type.key
+                                                  ? Colors.orange
+                                                  : Colors.white.withOpacity(0.1),
+                                              width: _selectedCommuteKey == type.key ? 2 : 1,
                                             ),
                                           ),
-                                          value: type.key,
-                                          groupValue: _selectedCommuteKey,
-                                          onChanged: (val) => setState(
-                                              () => _selectedCommuteKey = val),
-                                          activeColor: Colors.orange,
-                                        ),
-                                      )),
+                                          child: RadioListTile<String>(
+                                            selectedTileColor: Colors.orange,
+                                            contentPadding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 4,
+                                            ),
+                                            title: Text(
+                                              _formatCommuteTime(type.value),
+                                              style: TextStyle(
+                                                color: _selectedCommuteKey == type.key
+                                                    ? Colors.orange.shade200
+                                                    : Colors.white,
+                                                fontWeight: _selectedCommuteKey == type.key
+                                                    ? FontWeight.w600
+                                                    : FontWeight.normal,
+                                              ),
+                                            ),
+                                            value: type.key,
+                                            groupValue: _selectedCommuteKey,
+                                            onChanged: (val) =>
+                                                setState(() => _selectedCommuteKey = val),
+                                            activeColor: Colors.orange,
+                                          ),
+                                        )),
                                 ],
                               ),
                   ],
@@ -687,9 +674,8 @@ class _OrderDialogWithCommuteTypesState
                   const SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _isLoading || _selectedCommuteKey == null
-                          ? null
-                          : () => _acceptOrder(),
+                      onPressed:
+                          _isLoading || _selectedCommuteKey == null ? null : () => _acceptOrder(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
@@ -706,8 +692,7 @@ class _OrderDialogWithCommuteTypesState
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
                           : const Text(
@@ -737,9 +722,8 @@ class _OrderDialogWithCommuteTypesState
     });
 
     try {
-      final commuteTime = _commuteTypes!
-          .firstWhere((type) => type.key == _selectedCommuteKey)
-          .value;
+      final commuteTime =
+          _commuteTypes!.firstWhere((type) => type.key == _selectedCommuteKey).value;
 
       // Dispatch Bloc event instead of calling repository directly
       context.read<OrderBloc>().add(

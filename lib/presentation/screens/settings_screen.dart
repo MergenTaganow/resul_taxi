@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:taxi_service/core/di/injection.dart';
+import 'package:taxi_service/core/services/taxometer_service.dart';
 import 'package:taxi_service/domain/repositories/auth_repository.dart';
 import 'package:taxi_service/core/mixins/location_warning_mixin.dart';
 import 'package:taxi_service/presentation/screens/gps_debug_screen.dart';
@@ -12,8 +13,7 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen>
-    with LocationWarningMixin {
+class _SettingsScreenState extends State<SettingsScreen> with LocationWarningMixin {
   bool _onDuty = true;
   bool _loading = false;
   bool _dutyLoading = false;
@@ -50,6 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       // Fetch settings
       final settings = await getIt<AuthRepository>().getDriverSettings();
 
+      settings.removeWhere((e) => e["key"] == "commute_for_waiting");
       setState(() {
         _settings = settings;
         _onDuty = dutyStatus == 'on_duty';
@@ -72,8 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       _error = null;
     });
     try {
-      await getIt<AuthRepository>()
-          .setDutyStatus(onDuty ? 'on_duty' : 'off_duty');
+      await getIt<AuthRepository>().setDutyStatus(onDuty ? 'on_duty' : 'off_duty');
       setState(() {
         _onDuty = onDuty;
       });
@@ -179,12 +179,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                   children: [
                                     Text(
                                       setting['description'].contains('Commute')
-                                          ? (int.parse(setting['value']) /
-                                                      1000 /
-                                                      60)
-                                                  .round()
-                                                  .toString() +
-                                              ' мин'
+                                          ? '${(int.parse(setting['value']) / 1000 / 60).round()} мин'
                                           : setting['value'].toString(),
                                       style: const TextStyle(
                                         color: Colors.greenAccent,
@@ -197,19 +192,16 @@ class _SettingsScreenState extends State<SettingsScreen>
                                       GestureDetector(
                                         onTap: () async {
                                           final cleanPhone = setting['value']
-                                              .replaceAll(
-                                                  RegExp(r'[\s\-\(\)]'), '');
+                                              .replaceAll(RegExp(r'[\s\-\(\)]'), '');
                                           final url = 'tel:$cleanPhone';
                                           await launchUrl(Uri.parse(url));
                                         },
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 8),
+                                        child: const Padding(
+                                          padding: EdgeInsets.symmetric(vertical: 8),
                                           child: CircleAvatar(
                                             backgroundColor: Colors.green,
                                             radius: 26,
-                                            child: const Icon(Icons.call,
-                                                color: Colors.white, size: 16),
+                                            child: Icon(Icons.call, color: Colors.white, size: 16),
                                           ),
                                         ),
                                       ),
@@ -239,8 +231,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
                 elevation: 0,
                 child: ListTile(
-                  leading: const Icon(Icons.gps_fixed,
-                      color: Colors.blueAccent, size: 32),
+                  leading: const Icon(Icons.gps_fixed, color: Colors.blueAccent, size: 32),
                   title: const Text(
                     'GPS Debug',
                     style: TextStyle(
@@ -256,8 +247,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                       fontSize: 12,
                     ),
                   ),
-                  trailing:
-                      const Icon(Icons.arrow_forward_ios, color: Colors.grey),
+                  trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey),
                   onTap: () {
                     Navigator.push(
                       context,

@@ -10,6 +10,9 @@ import 'package:taxi_service/domain/entities/commute_type.dart';
 import 'package:taxi_service/domain/repositories/order_repository.dart';
 import 'package:taxi_service/core/mixins/location_warning_mixin.dart';
 
+import '../../core/di/injection.dart';
+import '../../core/services/taxometer_service.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -83,12 +86,10 @@ class _HomeScreenState extends State<HomeScreen> with LocationWarningMixin {
         },
         builder: (context, state) {
           return state.maybeWhen(
-            orderReceived: (order, commuteTime) =>
-                _buildIncomingOrder(context, order),
+            orderReceived: (order, commuteTime) => _buildIncomingOrder(context, order),
             orderAccepted: (order, freeOrder, commuteTime) =>
                 _buildOrderTracking(context, order, false),
-            orderInProgress: (order, commuteTime) =>
-                _buildOrderTracking(context, order, true),
+            orderInProgress: (order, commuteTime) => _buildOrderTracking(context, order, true),
             orElse: () => _buildWaitingState(context),
           );
         },
@@ -290,13 +291,11 @@ class _HomeScreenState extends State<HomeScreen> with LocationWarningMixin {
                             final commuteTime = await showDialog<String>(
                               context: context,
                               barrierDismissible: false,
-                              builder: (ctx) =>
-                                  _CommuteTypeDialog(order: order),
+                              builder: (ctx) => _CommuteTypeDialog(order: order),
                             );
                             if (commuteTime != null) {
                               context.read<OrderBloc>().add(
-                                    OrderEvent.acceptOrder(
-                                        order.id, false, order,
+                                    OrderEvent.acceptOrder(order.id, false, order,
                                         commuteTime: commuteTime),
                                   );
                             }
@@ -326,8 +325,7 @@ class _HomeScreenState extends State<HomeScreen> with LocationWarningMixin {
     );
   }
 
-  Widget _buildOrderTracking(
-      BuildContext context, Order order, bool isInProgress) {
+  Widget _buildOrderTracking(BuildContext context, Order order, bool isInProgress) {
     final theme = Theme.of(context);
 
     return SingleChildScrollView(
@@ -355,9 +353,7 @@ class _HomeScreenState extends State<HomeScreen> with LocationWarningMixin {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: (isInProgress
-                          ? theme.colorScheme.secondary
-                          : theme.colorScheme.primary)
+                  color: (isInProgress ? theme.colorScheme.secondary : theme.colorScheme.primary)
                       .withOpacity(0.3),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
@@ -441,9 +437,7 @@ class _HomeScreenState extends State<HomeScreen> with LocationWarningMixin {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isInProgress
-                            ? Colors.green
-                            : theme.colorScheme.primary,
+                        backgroundColor: isInProgress ? Colors.green : theme.colorScheme.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -553,8 +547,7 @@ class _HomeScreenState extends State<HomeScreen> with LocationWarningMixin {
     );
   }
 
-  Widget _buildDetailRow(
-      BuildContext context, IconData icon, String label, String value) {
+  Widget _buildDetailRow(BuildContext context, IconData icon, String label, String value) {
     final theme = Theme.of(context);
 
     return Container(
@@ -607,8 +600,7 @@ class _HomeScreenState extends State<HomeScreen> with LocationWarningMixin {
     );
   }
 
-  Widget _buildStatisticRow(
-      BuildContext context, IconData icon, String label, String value) {
+  Widget _buildStatisticRow(BuildContext context, IconData icon, String label, String value) {
     final theme = Theme.of(context);
 
     return Container(
@@ -682,9 +674,10 @@ class _CommuteTypeDialogState extends State<_CommuteTypeDialog> {
       _error = null;
     });
     try {
-      final repo =
-          RepositoryProvider.of<OrderRepository>(context, listen: false);
+      final repo = RepositoryProvider.of<OrderRepository>(context, listen: false);
       final types = await repo.getCommuteTypes();
+      getIt<TaxometerService>().setTimeForDrivingToWaiting(
+          int.parse(types.firstWhere((e) => e.key == "commute_for_waiting").value));
       setState(() {
         _commuteTypes = types;
         _loading = false;
@@ -722,25 +715,23 @@ class _CommuteTypeDialogState extends State<_CommuteTypeDialog> {
         ],
       ),
       content: _loading
-          ? const SizedBox(
-              height: 120, child: Center(child: CircularProgressIndicator()))
+          ? const SizedBox(height: 120, child: Center(child: CircularProgressIndicator()))
           : _error != null
               ? SizedBox(
                   height: 120,
-                  child: Center(
-                      child: Text(_error!,
-                          style: const TextStyle(color: Colors.red))))
+                  child: Center(child: Text(_error!, style: const TextStyle(color: Colors.red))))
               : Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ...?_commuteTypes?.map((type) => RadioListTile<String>(
-                          title: Text(type.description),
-                          value: type.key,
-                          groupValue: _selectedCommuteKey,
-                          onChanged: (val) =>
-                              setState(() => _selectedCommuteKey = val),
-                        )),
+                    ...?_commuteTypes?.map((type) => type.key == 'commute_for_waiting'
+                        ? Container()
+                        : RadioListTile<String>(
+                            title: Text(type.description),
+                            value: type.key,
+                            groupValue: _selectedCommuteKey,
+                            onChanged: (val) => setState(() => _selectedCommuteKey = val),
+                          )),
                   ],
                 ),
       actions: [
@@ -752,9 +743,8 @@ class _CommuteTypeDialogState extends State<_CommuteTypeDialog> {
           onPressed: _selectedCommuteKey == null
               ? null
               : () {
-                  final commuteTime = _commuteTypes!
-                      .firstWhere((type) => type.key == _selectedCommuteKey)
-                      .value;
+                  final commuteTime =
+                      _commuteTypes!.firstWhere((type) => type.key == _selectedCommuteKey).value;
                   Navigator.of(context).pop(commuteTime);
                 },
           child: const Text('Select'),

@@ -13,8 +13,8 @@ class ApiClient {
   ApiClient() {
     _dio = Dio(
       BaseOptions(
+        baseUrl: 'https://taksi.esynag.com',
         // baseUrl: 'http://46.173.17.202:9091',
-        baseUrl: 'http://46.173.17.202:9091',
         contentType: 'application/json',
       ),
     );
@@ -31,8 +31,6 @@ class ApiClient {
       InterceptorsWrapper(
         onRequest: (options, handler) {
           print('[DIO REQUEST] => ${options.method} ${options.uri}');
-          print('[DIO REQUEST DATA] => ${options.data}');
-          print('[DIO REQUEST HEADERS] => ${options.headers}');
           return handler.next(options);
         },
         onResponse: (response, handler) {

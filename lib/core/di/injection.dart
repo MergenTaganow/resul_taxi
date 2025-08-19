@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:taxi_service/core/network/api_client.dart';
 import 'package:taxi_service/core/network/socket_client.dart';
 import 'package:taxi_service/core/services/additional_settings_service.dart';
+import 'package:taxi_service/core/services/background_service.dart';
 import 'package:taxi_service/core/services/sound_service.dart';
 import 'package:taxi_service/core/services/push_notification_service.dart';
 import 'package:taxi_service/core/services/profile_service.dart';
@@ -20,21 +21,24 @@ import 'package:taxi_service/presentation/blocs/order/order_bloc.dart';
 import 'package:taxi_service/presentation/blocs/notifications/notifications_bloc.dart';
 import 'package:taxi_service/presentation/blocs/messages/messages_bloc.dart';
 
+import '../services/queued_requests_service.dart';
+
 final getIt = GetIt.instance;
 
 Future<void> configureDependencies() async {
   // Services
   getIt.registerLazySingleton(() => ApiClient());
-  getIt.registerLazySingleton(() => SocketClient());
+  getIt.registerLazySingleton<SocketClient>(() => SocketClient());
   getIt.registerLazySingleton(() => SoundService());
   getIt.registerLazySingleton(() => ProfileService());
   getIt.registerLazySingleton(() => GpsService());
   getIt.registerLazySingleton(() => SettingsService());
   getIt.registerLazySingleton(() => LocationWarningService());
   getIt.registerLazySingleton(() => LocationDistrictService());
-  getIt.registerLazySingleton(() => TaxometerService());
+  getIt.registerLazySingleton<TaxometerService>(() => TaxometerService());
   getIt.registerLazySingleton(() => ConnectivityService());
   getIt.registerLazySingleton(() => AdditionalSettingsService());
+  getIt.registerLazySingleton<QueuedRequestsService>(() => QueuedRequestsService());
 
   // Initialize Services
   await getIt<SettingsService>().initialize();
@@ -74,8 +78,6 @@ Future<void> configureDependencies() async {
     return AuthBloc(authRepository);
   });
   getIt.registerFactory(() => OrderBloc(getIt<OrderRepository>()));
-  getIt.registerFactory(
-      () => NotificationsBloc(getIt<SocketClient>(), getIt<ApiClient>()));
-  getIt.registerFactory(
-      () => MessagesBloc(getIt<SocketClient>(), getIt<ApiClient>()));
+  getIt.registerFactory(() => NotificationsBloc(getIt<SocketClient>(), getIt<ApiClient>()));
+  getIt.registerFactory(() => MessagesBloc(getIt<SocketClient>(), getIt<ApiClient>()));
 }

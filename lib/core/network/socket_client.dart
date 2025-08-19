@@ -16,7 +16,9 @@ import 'package:taxi_service/domain/entities/message.dart';
 
 class SocketClient {
   // static const String _apiRoot = '46.173.17.202:9094';
-  static const String _apiRoot = '46.173.17.202:9094';
+  // static const String _apiRoot = '46.173.17.202:9094';
+  // static const bool _useHttps = false;
+  static const String _apiRoot = 'taksi.esynag.com:9094';
   static const bool _useHttps = false;
   IO.Socket? _socket;
   final _orderController = StreamController<Order>.broadcast();
@@ -139,7 +141,7 @@ class SocketClient {
       // };
       // final order = Order.fromJson(orderMap);
       // _orderController.add(order);
-      _startLocationUpdates();
+      startLocationUpdates();
     });
 
     _socket!.onDisconnect((_) {
@@ -281,12 +283,11 @@ class SocketClient {
     // );
   }
 
-  void _startLocationUpdates() {
+  void startLocationUpdates() {
     _stopLocationUpdates(); // Stop any existing timer
     _locationTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      print(_locationTimer!.tick.toString() + ' ticks');
       if (_isConnected) {
-        _sendLocationUpdate();
+        sendLocationUpdate();
       }
     });
     print('[SOCKET.IO] Started location updates every 5 seconds');
@@ -298,7 +299,7 @@ class SocketClient {
     print('[SOCKET.IO] Stopped location updates');
   }
 
-  Future<void> _sendLocationUpdate() async {
+  Future<void> sendLocationUpdate() async {
     try {
       // Throttle location updates to prevent too frequent requests
       // if (_lastLocationSent != null &&
@@ -308,15 +309,16 @@ class SocketClient {
       // }
 
       // Try to get last known position first to reduce frequency
+
+      if (await LocationHelper.isLocationServiceEnabled()) {
+        _currentPosition = await Geolocator.getCurrentPosition();
+      }
       if (_currentPosition == null) {
         print(
             '[SOCKET.IO] Could not get location - permissions or services disabled');
         return;
       }
 
-      if (await LocationHelper.isLocationServiceEnabled()) {
-        _currentPosition = await Geolocator.getCurrentPosition();
-      }
       // Prepare location data
       final locationData = {
         'latitude': _currentPosition!.latitude,
@@ -348,11 +350,7 @@ class SocketClient {
     _messageController.close();
   }
 
-  void send(String event, dynamic data) {
-    final encoded = data is String ? data : jsonEncode(data);
-    print('[SOCKET.IO] Sending $event: $encoded');
-    _socket?.emit(event, encoded);
-  }
+
 
   void emit(String event, dynamic data) {
     print('[SOCKET.IO] Emitting $event: $data');

@@ -4,10 +4,13 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:flutter_foreground_task/task_handler.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taxi_service/core/services/additional_settings_service.dart';
+import 'package:taxi_service/core/services/background_service.dart';
 import 'package:taxi_service/core/services/push_notification_service.dart';
 import '../utils/location_helper.dart';
 import '../network/api_client.dart';
@@ -54,6 +57,7 @@ class TaxometerService {
   Position? _currentPosition;
   Position? _lastPosition;
   Position? _switchedToWaitingModePosition;
+  Position? _freeWaitingStartPosition;
   StreamSubscription<Position>? _locationSubscription;
   DateTime? _lastLocationUpdate;
   Timer? _locationTimeoutTimer;
@@ -88,15 +92,17 @@ class TaxometerService {
   // Movement detection for automatic state switching
   Position? _lastPositionForMovementDetection;
   DateTime? _lastMovementDetectionTime;
-  static const int _movementThresholdMeters =
-      10; // Minimum movement to consider driving
-  static const int _movementDetectionTimeSeconds =
-      5; // Time window for movement detection
+  static const int _movementThresholdMeters = 10; // Minimum movement to consider driving
+  int movementDetectionTimeSeconds = 5; // Time window for movement detection
   static const int _waitingToDrivingThresholdMeters =
       20; // Lower threshold for switching from waiting to driving
 
   // Current order
   Order? _currentOrder;
+
+  setTimeForDrivingToWaiting(int milliSecond) {
+    movementDetectionTimeSeconds = (milliSecond / 1000).toInt();
+  }
 
   // State change listeners
   bool _isTaxometerScreenActive = false;
@@ -149,12 +155,10 @@ class TaxometerService {
 
   // Constructor
   TaxometerService() {
-    print('[TAXOMETER_SERVICE] Constructor called');
     _initialize();
   }
 
   void _initialize() async {
-    print('[TAXOMETER_SERVICE] Initializing...');
     _gpsService = getIt<GpsService>();
     _flutterTts = FlutterTts();
 
@@ -163,9 +167,14 @@ class TaxometerService {
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(getIt<AdditionalSettingsService>().soundLevel);
     await _flutterTts.setPitch(1.0);
+  }
 
-    print(
-        '[TAXOMETER_SERVICE] Initialization complete - isRunning: $_isRunning, isActive: $isActive');
+  speakSentence(String rusSentence) async {
+    try {
+      await _flutterTts.speak(rusSentence);
+    } catch (e) {
+      print('Error speaking start driving message: $e');
+    }
   }
 
   // void _resumeFromBackground() {
@@ -207,7 +216,6 @@ class TaxometerService {
         title: 'Заказ отменён!',
         body: 'Заказ по адресу: ${data['requested_address']} был отменён.');
     if (onRequestCancelled != null) {
-      print('HEREEEE');
       onRequestCancelled;
       requestCancelled = true;
       _notifyStateChange();
@@ -224,14 +232,11 @@ class TaxometerService {
 
       _currentTariffName = tariffs['slug'] ?? _currentOrder?.tarrifSlug;
       _baseFare = (tariffs['initial_price'] ?? _baseFare).toDouble();
-      _minOrderPrice =
-          (tariffs['min_request_price'] ?? _minOrderPrice).toDouble();
+      _minOrderPrice = (tariffs['min_request_price'] ?? _minOrderPrice).toDouble();
       _perKmRate = (tariffs['waiting_price_per_km'] ?? _perKmRate).toDouble();
-      _waitingRate =
-          (tariffs['waiting_price_per_minute'] ?? _waitingRate).toDouble();
+      _waitingRate = (tariffs['waiting_price_per_minute'] ?? _waitingRate).toDouble();
       // Set free waiting time from tariff data
-      _freeWaitingTime =
-          int.parse(tariffs['waiting_delay_time'] ?? '120000') ~/ 1000;
+      _freeWaitingTime = int.parse(tariffs['waiting_delay_time'] ?? '120000') ~/ 1000;
 
       // Set current fare to base fare if not running
       if (!_isRunning) {
@@ -270,56 +275,42 @@ class TaxometerService {
   }
 
   void _loadTariffSettings() {
-    print('Start loading tariffs');
     if (_orderTarrifId != null) {
       final matched = _tariffs.firstWhere(
-        (t) => LocationHelper.pointInPolygon(_currentPosition!.latitude,
-            _currentPosition!.longitude, t['region']['polygon']),
+        (t) => LocationHelper.pointInPolygon(
+            _currentPosition!.latitude, _currentPosition!.longitude, t['region']['polygon']),
         orElse: () => null,
       );
-
-      print('Loading tariff settings: ${matched?['slug']}');
 
       if (matched != null) {
         _currentRegion = matched;
         _currentTariffName = matched?['slug'] ?? _currentOrder?.tarrifSlug;
         _baseFare = (matched['initial_price'] ?? _baseFare).toDouble();
-        _minOrderPrice =
-            (matched['min_request_price'] ?? _minOrderPrice).toDouble();
+        _minOrderPrice = (matched['min_request_price'] ?? _minOrderPrice).toDouble();
         _perKmRate = (matched['waiting_price_per_km'] ?? _perKmRate).toDouble();
-        _waitingRate =
-            (matched['waiting_price_per_minute'] ?? _waitingRate).toDouble();
+        _waitingRate = (matched['waiting_price_per_minute'] ?? _waitingRate).toDouble();
         // Set current fare to base fare if not running
         // if (!_isRunning) {
         //   _currentFare = _baseFare;
         // }
-
-        print(
-            '[TAXOMETER_SERVICE] Loaded tariff settings: base=$_baseFare, perKm=$_perKmRate, waiting=$_waitingRate, freeWaiting=$_freeWaitingTime, currentFare=$_currentFare');
       } else {
-        _currentTariffName =
-            _currentTariff?['slug'] ?? _currentOrder?.tarrifSlug;
+        _currentTariffName = _currentTariff?['slug'] ?? _currentOrder?.tarrifSlug;
         _baseFare = (_currentTariff?['initial_price'] ?? _baseFare).toDouble();
-        _minOrderPrice =
-            (_currentTariff?['min_request_price'] ?? _minOrderPrice).toDouble();
-        _perKmRate =
-            (_currentTariff?['waiting_price_per_km'] ?? _perKmRate).toDouble();
-        _waitingRate =
-            (_currentTariff?['waiting_price_per_minute'] ?? _waitingRate)
-                .toDouble();
+        _minOrderPrice = (_currentTariff?['min_request_price'] ?? _minOrderPrice).toDouble();
+        _perKmRate = (_currentTariff?['waiting_price_per_km'] ?? _perKmRate).toDouble();
+        _waitingRate = (_currentTariff?['waiting_price_per_minute'] ?? _waitingRate).toDouble();
       }
     }
   }
 
   void setOrder(Order order, {int? arrivalCountdownSeconds}) async {
+    startBackgroundService();
     _startGpsMonitoring();
 
     // Start location tracking
     _initializeLocation();
 
     // Load tariffs - this will be called again when order is set
-    print(
-        '[TAXOMETER_SERVICE] Setting order: ${order.id}, tariffId: ${order.tarrifId}');
     _currentOrder = order;
     _orderTarrifId = order.tarrifId;
     _elapsedTime = 0;
@@ -328,7 +319,6 @@ class TaxometerService {
     _currentFare = _baseFare;
 
     if (arrivalCountdownSeconds != null && arrivalCountdownSeconds > 0) {
-      print('ALOOOOO');
       _startArrivalCountdown(arrivalCountdownSeconds);
     }
   }
@@ -338,17 +328,17 @@ class TaxometerService {
     _initialArrivalCountdown = seconds;
     _arrivalCountdownActive = true;
 
-    print('RJEY');
     _arrivalTimer?.cancel();
-    print('RJEY');
-    _arrivalTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      print('HEYYYYY');
-      if (_arrivalCountdown > 0) {
-        _arrivalCountdown--;
-        print('HEYYYYY');
-        _notifyStateChange();
-      } else {
-        _stopArrivalCountdown();
+    _arrivalTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      _arrivalCountdown--;
+      _notifyStateChange();
+      if (_arrivalCountdown == 0 ||
+          (_arrivalCountdown < 0 && (_arrivalTimer?.tick ?? 1) % 10 == 0)) {
+        try {
+          await _flutterTts.speak("Вы опаздываете");
+        } catch (e) {
+          print('Error speaking start driving message: $e');
+        }
       }
     });
   }
@@ -357,21 +347,18 @@ class TaxometerService {
     _arrivalTimer?.cancel();
     _arrivalCountdownActive = false;
     _arrivalCountdown = 0;
-    print('Start log timer');
     _startLogTimer();
     // _switchedToWaitingModePosition =
     _notifyStateChange();
   }
 
   void completeArrival() {
-    print('[TAXOMETER_SERVICE] Completing arrival');
     _stopArrivalCountdown();
     // Start free waiting countdown
     _startFreeWaitingCountdown();
   }
 
   Future<void> startTaxometer() async {
-    print('[TAXOMETER_SERVICE] startTaxometer called');
     // Ensure we have location permission before starting
     bool hasPermission = await LocationHelper.requestLocationPermission();
     if (!hasPermission) {
@@ -390,11 +377,8 @@ class TaxometerService {
       _lastPositionForMovementDetection = _currentPosition;
       _lastMovementDetectionTime = DateTime.now();
       _lastPosition = _currentPosition; // Initialize for distance calculation
-      print(
-          '[TAXOMETER_SERVICE] Initialized position tracking with: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}');
     } else {
-      print(
-          '[TAXOMETER_SERVICE] Warning: No current position available for initialization');
+      print('[TAXOMETER_SERVICE] Warning: No current position available for initialization');
     }
 
     _freeWaitingActive = false;
@@ -404,8 +388,7 @@ class TaxometerService {
     _switchToWaitingMode(force: true); // Start waiting timer initially
     _notifyStateChange();
 
-    print(
-        '[TAXOMETER_SERVICE] Taxometer started - isRunning: $_isRunning, isActive: $isActive');
+    print('[TAXOMETER_SERVICE] Taxometer started - isRunning: $_isRunning, isActive: $isActive');
 
     // Speak start message
     _speakStartDriving();
@@ -454,24 +437,8 @@ class TaxometerService {
       // timeLimit: Duration(seconds: 30), // Time limit for location updates
     );
 
-    _locationSubscription =
-        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+    _locationSubscription = Geolocator.getPositionStream(locationSettings: locationSettings).listen(
       (Position position) {
-        // Filter out low accuracy GPS readings that cause false movement
-        // if (position.accuracy > 15) {
-        //   print(
-        //       '[TAXOMETER_SERVICE] Skipping low accuracy GPS reading: ${position.accuracy}m');
-        //   return;
-        // }
-        // _currentPosition = position;
-        // if (!_tookStartingPosition &&
-        //     _isWaiting &&
-        //     !_freeWaitingActive &&
-        //     !_arrivalCountdownActive) {
-        //   _switchedToWaitingModePosition = position;
-        //   _tookStartingPosition = true;
-        // }
-
         print(
             '[TAXOMETER_SERVICE] Location update received: ${position.latitude}, ${position.longitude}, Accuracy: ${position.accuracy}m');
 
@@ -492,14 +459,11 @@ class TaxometerService {
         print('[TAXOMETER_SERVICE] Location error: $error');
         // Try to restart location tracking after a delay
         Future.delayed(const Duration(seconds: 5), () {
-          print(
-              '[TAXOMETER_SERVICE] Restarting location tracking after error...');
+          print('[TAXOMETER_SERVICE] Restarting location tracking after error...');
           _startLocationTracking();
         });
       },
     );
-
-    print('[TAXOMETER_SERVICE] Location tracking started successfully');
   }
 
   void _updateUIOnly() {
@@ -507,15 +471,9 @@ class TaxometerService {
 
     // Update region and tariff information
     _notifyStateChange();
-
-    print(
-        '[TAXOMETER_SERVICE] UI updated with new position: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}');
   }
 
   void _updateDistance(Position newPosition) {
-    print(
-        '[TAXOMETER_SERVICE] _tance called - _isRunning: $_isRunning, _isWaiting: $_isWaiting');
-
     // if (!_isRunning || _isWaiting || _lastPosition == null) {
     //   print(
     //       '[TAXOMETER_SERVICE] Distance calculation skipped - Conditions not met');
@@ -532,8 +490,7 @@ class TaxometerService {
         newPosition.longitude,
       );
 
-      print(
-          '[TAXOMETER_SERVICE] Distance calculated: ${distanceInMeters.toStringAsFixed(2)}m');
+      // print('[TAXOMETER_SERVICE] Distance calculated: ${distanceInMeters.toStringAsFixed(2)}m');
 
       // Only add distance if it's reasonable (not GPS noise/jump)
       if (distanceInMeters > 0 && distanceInMeters < 500) {
@@ -541,16 +498,10 @@ class TaxometerService {
         _currentFare += (distanceInMeters / 1000 * _perKmRate);
         _notifyStateChange();
 
-        print(
-            '[TAXOMETER_SERVICE] Distance update: ${distanceInMeters.toStringAsFixed(2)}m, Total: ${_distance.toStringAsFixed(3)}km, Fare: ${_currentFare.toStringAsFixed(2)} TMT');
-      } else if (distanceInMeters > 0) {
-        print('[TAXOMETER] Distance calculation skipped - Conditions not met');
-      }
-    } else {
-      if (!_isRunning) print('[TAXOMETER]   - Not running');
-      if (_isWaiting) print('[TAXOMETER]   - Is waiting');
-      if (_lastPosition == null) print('[TAXOMETER]   - No last position');
-    }
+        // print(
+        //     '[TAXOMETER_SERVICE] Distance update: ${distanceInMeters.toStringAsFixed(2)}m, Total: ${_distance.toStringAsFixed(3)}km, Fare: ${_currentFare.toStringAsFixed(2)} TMT');
+      } else if (distanceInMeters > 0) {}
+    } else {}
 
     _currentPosition = newPosition;
     _lastPosition = newPosition;
@@ -585,32 +536,24 @@ class TaxometerService {
       newPosition.longitude,
     );
 
-    print('Nazzy');
-
-    print(distanceMovedFromWaitingPosition);
-    print(distanceMoved);
-
     // Check if enough time has passed for movement detection
     if (_lastMovementDetectionTime != null) {
-      int timeSinceLastDetection =
-          now.difference(_lastMovementDetectionTime!).inSeconds;
+      int timeSinceLastDetection = now.difference(_lastMovementDetectionTime!).inSeconds;
 
       // Only do automatic movement detection if user hasn't manually started driving
       if (startedDriving) {
         // Check for movement to switch from waiting to driving
-        if (!_isRunning &&
-            distanceMovedFromWaitingPosition >=
-                _waitingToDrivingThresholdMeters) {
-          print(
-              '[TAXOMETER] Movement detected: ${distanceMovedFromWaitingPosition.toStringAsFixed(2)}m - Auto-switching to driving mode');
+        if (!_isRunning && distanceMovedFromWaitingPosition >= _waitingToDrivingThresholdMeters) {
+          // print(
+          //     '[TAXOMETER] Movement detected: ${distanceMovedFromWaitingPosition.toStringAsFixed(2)}m - Auto-switching to driving mode');
           _switchToDrivingMode();
         }
         // Check for no movement to switch from driving to waiting
         else if (_isRunning && !_isWaiting) {
           if (distanceMoved < _movementThresholdMeters &&
-              timeSinceLastDetection >= _movementDetectionTimeSeconds) {
-            print(
-                '[TAXOMETER] No movement detected: ${distanceMoved.toStringAsFixed(2)}m in ${timeSinceLastDetection}s - Auto-switching to waiting mode');
+              timeSinceLastDetection >= movementDetectionTimeSeconds) {
+            // print(
+            //     '[TAXOMETER] No movement detected: ${distanceMoved.toStringAsFixed(2)}m in ${timeSinceLastDetection}s - Auto-switching to waiting mode');
             _switchedToWaitingModePosition = newPosition;
             _switchToWaitingMode();
           }
@@ -633,8 +576,6 @@ class TaxometerService {
       // Reset last position to current position to prevent distance jump
       if (_currentPosition != null) {
         _lastPosition = _currentPosition;
-        print(
-            '[TAXOMETER] Reset _lastPosition to current position to prevent distance jump');
       }
 
       // Stop waiting timer and start distance calculation
@@ -657,9 +598,6 @@ class TaxometerService {
       _isWaiting = true;
       _isRunning = false;
       _notifyStateChange();
-      print(_switchedToWaitingModePosition);
-      print(_lastPositionForMovementDetection);
-      print(_currentPosition);
 
       // Start waiting timer
       _startWaitingTimer();
@@ -672,38 +610,32 @@ class TaxometerService {
     }
   }
 
-  // void forceWaitingMode() {
-  //   if (_isRunning) {
-  //     _isWaiting = true;
-  //     _startWaitingTimer();
-  //     _lastPosition = _currentPosition;
-
-  //     _notifyStateChange();
-  //     print('[TAXOMETER_SERVICE] Manually forced to waiting mode');
-  //   }
-  // }
-
-  // void forceDrivingMode() {
-  //   if (_isRunning) {
-  //     _isWaiting = false;
-  //     _startedDriving = true;
-  //     _stopWaitingTimer();
-  //     _lastPosition = _currentPosition;
-
-  //     _notifyStateChange();
-  //     print('[TAXOMETER_SERVICE] Manually forced to driving mode');
-  //   }
-  // }
-
-  void _startFreeWaitingCountdown() {
+  void _startFreeWaitingCountdown() async {
     _freeWaitingActive = true;
     _freeWaitingCountdown = _freeWaitingTime;
     _notifyStateChange();
+    _freeWaitingStartPosition = await Geolocator.getCurrentPosition();
 
-    _freeWaitingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _freeWaitingTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       if (_freeWaitingCountdown > 0) {
         _freeWaitingCountdown--;
         _notifyStateChange();
+        if ((_freeWaitingTimer?.tick ?? 1) % 5 == 0) {
+          var newPos = await Geolocator.getCurrentPosition();
+          var distance = Geolocator.distanceBetween(
+            _freeWaitingStartPosition!.latitude,
+            _freeWaitingStartPosition!.longitude,
+            newPos.latitude,
+            newPos.longitude,
+          );
+          if (distance > 20) {
+            try {
+              await _flutterTts.speak("Начните поездку!");
+            } catch (e) {
+              print('Error speaking start driving message: $e');
+            }
+          }
+        }
       } else {
         timer.cancel();
         _freeWaitingActive = false;
@@ -725,72 +657,32 @@ class TaxometerService {
     }
   }
 
-  // Background functionality
-  // void enterBackground() {
-  //   _isInBackground = true;
-  //   print('[TAXOMETER_SERVICE] Entered background mode');
-  //   _notifyStateChange();
-  // }
-
-  // void exitBackground() {
-  //   _isInBackground = false;
-  //   print('[TAXOMETER_SERVICE] Exited background mode');
-  //   _notifyStateChange();
-  // }
-
   // State change management
   void addStateChangeListener(VoidCallback listener) {
     _stateChangeListeners.add(listener);
-    print(
-        '[TAXOMETER_SERVICE] Added listener, total: ${_stateChangeListeners.length}');
   }
 
   void removeStateChangeListener(VoidCallback listener) {
     _stateChangeListeners.remove(listener);
-    print(
-        '[TAXOMETER_SERVICE] Removed listener, total: ${_stateChangeListeners.length}');
+  }
+
+  String _formatTime(int seconds) {
+    int minutes = seconds ~/ 60;
+    int remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
   void _notifyStateChange() {
-    print(
-        '[TAXOMETER_SERVICE] Notifying ${_stateChangeListeners.length} listeners of state change');
     for (final listener in _stateChangeListeners) {
       listener();
     }
+    FlutterForegroundTask.updateService(
+      notificationTitle: 'Tiz Taxi',
+      notificationText:
+          // 'Töleg: ${currentFare.toStringAsFixed(2)}, Geçilen ýol: ${_distance}, Wagt: ${_formatTime(_elapsedTime)}',
+          '💲: ${currentFare.toStringAsFixed(2)}TMT , ⏱️: ${_formatTime(_elapsedTime)}, 🚕: ${_distance.toStringAsFixed(2)} km',
+    );
   }
-
-  // Additional methods moved from TaxometerScreen
-  // void switchToDrivingMode() {
-  //   if (_isRunning && _isWaiting) {
-  //     _isWaiting = false;
-  //     _startedDriving = true;
-  //     _stopWaitingTimer();
-
-  //     // Reset last position to prevent distance jump
-  //     _lastPosition = _currentPosition;
-
-  //     _notifyStateChange();
-  //     print(
-  //         '[TAXOMETER_SERVICE] Switched to driving mode - _isRunning: $_isRunning, _isWaiting: $_isWaiting');
-  //   } else {
-  //     print(
-  //         '[TAXOMETER_SERVICE] Cannot switch to driving mode - _isRunning: $_isRunning, _isWaiting: $_isWaiting');
-  //   }
-  // }
-
-  // void switchToWaitingMode() {
-  //   if (_isRunning && !_isWaiting) {
-  //     _isWaiting = true;
-  //     _startWaitingTimer();
-
-  //     _notifyStateChange();
-  //     print(
-  //         '[TAXOMETER_SERVICE] Switched to waiting mode - _isRunning: $_isRunning, _isWaiting: $_isWaiting');
-  //   } else {
-  //     print(
-  //         '[TAXOMETER_SERVICE] Cannot switch to waiting mode - _isRunning: $_isRunning, _isWaiting: $_isWaiting');
-  //   }
-  // }
 
   void startLocationTimeoutChecker() {
     _locationTimeoutTimer?.cancel();
@@ -798,9 +690,6 @@ class TaxometerService {
       if (_isRunning && !_isWaiting && _lastLocationUpdate != null) {
         final now = DateTime.now();
         if (now.difference(_lastLocationUpdate!).inSeconds >= 10) {
-          print(
-              '[TAXOMETER] Location timeout detected - switching to waiting mode');
-
           // Set transition flag to prevent UI sync interference
           _isStateTransitioning = true;
 
@@ -819,8 +708,7 @@ class TaxometerService {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_isWaiting && !_isRunning) {
         _elapsedTime++;
-        _currentFare +=
-            _waitingRate / 60; // Convert per-minute rate to per-second
+        _currentFare += _waitingRate / 60; // Convert per-minute rate to per-second
         _notifyStateChange();
       }
     });
@@ -833,13 +721,10 @@ class TaxometerService {
   void _startLogTimer() {
     _logTimer?.cancel();
     _logTimer = Timer.periodic(const Duration(seconds: 3), (_) {
-      print(_currentPosition);
       if (_currentPosition == null) return;
       final lat = _currentPosition!.latitude;
       final lng = _currentPosition!.longitude;
-      if (_lastLoggedFare == _currentFare &&
-          _lastLoggedLat == lat &&
-          _lastLoggedLng == lng) return;
+      if (_lastLoggedFare == _currentFare && _lastLoggedLat == lat && _lastLoggedLng == lng) return;
       _lastLoggedFare = _currentFare;
       _lastLoggedLat = lat;
       _lastLoggedLng = lng;
@@ -855,8 +740,6 @@ class TaxometerService {
           'latitude': lat,
         }
       };
-
-      print('Road detail: $roadDetail');
 
       _roadDetails.add(roadDetail);
 
@@ -880,204 +763,4 @@ class TaxometerService {
     _gpsService.dispose();
     _stateChangeListeners.clear();
   }
-
-  void _stopTaxometerWithConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: const Text(
-          'Завершить заказ',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 20),
-            const Text(
-              'Вы уверены, что хотите завершить заказ?',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 60),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text(
-                  'Отмена',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  // await _completeOrder(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text(
-                  'Завершить',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
-// Future<void> _completeOrder(BuildContext context) async {
-//   // Show loading dialog
-//   showDialog(
-//     context: context,
-//     barrierDismissible: false,
-//     builder: (context) => AlertDialog(
-//       backgroundColor: Colors.transparent,
-//       content: Container(
-//         padding: const EdgeInsets.all(24),
-//         decoration: BoxDecoration(
-//           color: Colors.grey[900],
-//           borderRadius: BorderRadius.circular(16),
-//         ),
-//         child: const Column(
-//           mainAxisSize: MainAxisSize.min,
-//           children: [
-//             CircularProgressIndicator(
-//               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-//               strokeWidth: 3,
-//             ),
-//             SizedBox(height: 24),
-//             Text(
-//               'Завершение заказа...',
-//               style: TextStyle(
-//                 color: Colors.white,
-//                 fontSize: 18,
-//                 fontWeight: FontWeight.w500,
-//               ),
-//             ),
-//             SizedBox(height: 8),
-//             Text(
-//               'Пожалуйста, подождите',
-//               style: TextStyle(
-//                 color: Colors.white70,
-//                 fontSize: 14,
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     ),
-//   );
-
-//   final apiClient = getIt<ApiClient>();
-
-//   // Apply minimum order price
-//   double finalPrice = getFinalPrice();
-//   if (finalPrice < _minOrderPrice) {
-//     finalPrice = _minOrderPrice;
-//   }
-
-//   try {
-//     final response = await apiClient.completeOrder(
-//       requestId: widget.order.id,
-//       priceTotal: finalPrice,
-//       roadDetails: _roadDetails,
-//     );
-//     if (response.statusCode == 200) {
-//       // Play sound for order completion
-//       getIt<SoundService>().playOrderCompleteSound();
-
-//       // Speak the completion message with price
-//       await _speakCompletionMessage(finalPrice);
-
-//       // Update profile balance (assuming the order amount is added to balance)
-//       final profileService = getIt<ProfileService>();
-//       final currentBalance = profileService.balance;
-//       print('[TAXOMETER] Current balance before update: $currentBalance');
-//       print('[TAXOMETER] Adding fare to balance: $finalPrice');
-//       await profileService.updateBalance(currentBalance + finalPrice);
-//       print('[TAXOMETER] Balance updated to: ${profileService.balance}');
-
-//       // Refresh profile data from API to ensure balance is up to date
-//       try {
-//         await profileService.loadProfile();
-//         print(
-//             '[TAXOMETER] Profile refreshed from API, new balance: ${profileService.balance}');
-//       } catch (e) {
-//         print('[TAXOMETER] Error refreshing profile: $e');
-//       }
-
-//       // Small delay to ensure balance update is processed
-//       await Future.delayed(const Duration(milliseconds: 100));
-
-//       _stopTaxometer();
-//       // Dismiss loading dialog
-//       if (mounted) {
-//         Navigator.of(context).pop();
-//       }
-//       // Navigate to completion screen with order details
-//       if (mounted) {
-//         Navigator.of(context).pushReplacement(
-//           MaterialPageRoute(
-//             builder: (context) => OrderCompletionScreen(
-//               finalPrice: finalPrice.round(),
-//               distance: _distance,
-//               elapsedTime: _elapsedTime,
-//             ),
-//           ),
-//         );
-//       }
-//     } else {
-//       // Dismiss loading dialog
-//       if (mounted) {
-//         Navigator.of(context).pop();
-//       }
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(
-//           content: Text('Не удалось завершить заказ: ${response.statusCode}'),
-//           backgroundColor: Colors.red,
-//         ),
-//       );
-//     }
-//   } catch (e) {
-//     // Dismiss loading dialog
-//     if (mounted) {
-//       Navigator.of(context).pop();
-//     }
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       SnackBar(
-//         content: Text('Ошибка: ${e.toString()}'),
-//         backgroundColor: Colors.red,
-//       ),
-//     );
-//   }

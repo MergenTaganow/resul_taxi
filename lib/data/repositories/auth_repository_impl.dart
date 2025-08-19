@@ -50,28 +50,32 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Map<String, dynamic>> getProfile() async {
-    final response = await _apiClient.getProfile();
+    // try {
+      final response = await _apiClient.getProfile();
+      print(response.data);
+      final profileData = response.data['payload'] as Map<String, dynamic>;
 
-    // If profile fetch is successful, ensure socket is connected with current token
-    final currentToken = _apiClient.authToken;
-    if (currentToken != null) {
-      _socketClient.setAuthToken(currentToken);
-    }
+      // If profile fetch is successful, ensure socket is connected with current token
+      final currentToken = _apiClient.authToken;
+      if (currentToken != null) {
+        _socketClient.setAuthToken(currentToken);
+      }
 
-    // Switch to on_duty after getting profile
-    await setDutyStatus('on_duty');
+      // Switch to on_duty after getting profile
+      await setDutyStatus('on_duty');
 
-    final profileData = response.data['payload'] as Map<String, dynamic>;
+      // Update profile service with new data
+      final profileService = getIt<ProfileService>();
+      await profileService.updateProfileData(profileData);
 
-    // Update profile service with new data
-    final profileService = getIt<ProfileService>();
-    await profileService.updateProfileData(profileData);
+      // Fetch districts after profile is loaded
+      final locationDistrictService = getIt<LocationDistrictService>();
+      await locationDistrictService.fetchDistrictsWhenAuthenticated();
 
-    // Fetch districts after profile is loaded
-    final locationDistrictService = getIt<LocationDistrictService>();
-    await locationDistrictService.fetchDistrictsWhenAuthenticated();
-
-    return profileData;
+      return profileData;
+    // } catch (e) {
+    //   return {};
+    // }
   }
 
   // Method to initialize socket connection for already authenticated user
@@ -101,8 +105,6 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<List<Map<String, dynamic>>> getDriverSettings() async {
     final settings = await _apiClient.getDriverSettings();
     // Ensure each item is a Map<String, dynamic>
-    return settings
-        .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
-        .toList();
+    return settings.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 }

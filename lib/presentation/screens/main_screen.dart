@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:ui';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,6 +27,8 @@ import 'package:taxi_service/core/services/profile_service.dart';
 import 'package:taxi_service/core/mixins/location_warning_mixin.dart';
 import 'package:taxi_service/core/services/connectivity_service.dart';
 
+import '../../core/services/queued_requests_service.dart';
+
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -32,8 +36,7 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen>
-    with WidgetsBindingObserver, LocationWarningMixin {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver, LocationWarningMixin {
   late ProfileService _profileService;
   late GpsService _gpsService;
   late ConnectivityService _connectivityService;
@@ -41,6 +44,7 @@ class _MainScreenState extends State<MainScreen>
   bool _isConnected = false;
   double _currentBalance = 0.0;
   late TaxometerService _taxometerService;
+  Timer? _ttsTimer;
 
   @override
   void initState() {
@@ -54,6 +58,7 @@ class _MainScreenState extends State<MainScreen>
     _initializeGpsMonitoring();
     _initializeConnectivityMonitoring();
     _initializeBalanceMonitoring();
+    listenToConnectivity();
     _taxometerService.addStateChangeListener(() {
       setState(() {});
     });
@@ -71,6 +76,30 @@ class _MainScreenState extends State<MainScreen>
       // Refresh balance when app is resumed (e.g., returning from taxometer)
       _loadProfile();
     }
+  }
+
+  void listenToConnectivity() {
+    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+      final isConnected = result != ConnectivityResult.none;
+
+      if (isConnected) {
+        // ✅ Internet is back — stop TTS loop and retry requests
+        _ttsTimer?.cancel();
+        _ttsTimer = null;
+        getIt<QueuedRequestsService>().retryQueuedRequests();
+      } else {
+        // 📡 No internet — start TTS loop every 10 seconds
+        if (_ttsTimer == null) {
+          _ttsTimer = Timer.periodic(Duration(seconds: 10), (timer) async {
+            try {
+              await _taxometerService.speakSentence("Включите интернет!");
+            } catch (e) {
+              print('Error speaking message: $e');
+            }
+          });
+        }
+      }
+    });
   }
 
   Future<void> _loadProfile() async {
@@ -176,8 +205,7 @@ class _MainScreenState extends State<MainScreen>
                       children: [
                         GestureDetector(
                           onTap: () => scaffoldKey.currentState?.openDrawer(),
-                          child: const Icon(Icons.menu,
-                              color: Colors.white, size: 32),
+                          child: const Icon(Icons.menu, color: Colors.white, size: 32),
                         ),
                         const SizedBox(width: 10),
                         ClipRRect(
@@ -196,8 +224,7 @@ class _MainScreenState extends State<MainScreen>
                               color: Colors.white.withOpacity(0.08),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -223,12 +250,8 @@ class _MainScreenState extends State<MainScreen>
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Icon(
-                              _isGpsEnabled
-                                  ? Icons.location_on
-                                  : Icons.location_off,
-                              color: _isGpsEnabled
-                                  ? Colors.greenAccent
-                                  : Colors.redAccent,
+                              _isGpsEnabled ? Icons.location_on : Icons.location_off,
+                              color: _isGpsEnabled ? Colors.greenAccent : Colors.redAccent,
                               size: 20,
                             ),
                           ),
@@ -249,9 +272,7 @@ class _MainScreenState extends State<MainScreen>
                             ),
                             child: Icon(
                               _isConnected ? Icons.wifi : Icons.wifi_off,
-                              color: _isConnected
-                                  ? Colors.greenAccent
-                                  : Colors.redAccent,
+                              color: _isConnected ? Colors.greenAccent : Colors.redAccent,
                               size: 20,
                             ),
                           ),
@@ -262,8 +283,7 @@ class _MainScreenState extends State<MainScreen>
                   // Grid
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       child: GridView.count(
                         crossAxisCount: 2,
                         childAspectRatio: 1.2,
@@ -276,8 +296,7 @@ class _MainScreenState extends State<MainScreen>
                               iconColor: Colors.blueAccent,
                               onTap: () {
                                 Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                      builder: (_) => const DistrictsScreen()),
+                                  MaterialPageRoute(builder: (_) => const DistrictsScreen()),
                                 );
                               }),
                           _DashboardButton(
@@ -356,8 +375,7 @@ class _MainScreenState extends State<MainScreen>
                               onTap: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
-                                    builder: (_) =>
-                                        const AdditionalSettingsScreen(),
+                                    builder: (_) => const AdditionalSettingsScreen(),
                                   ),
                                 );
                               }),
@@ -388,8 +406,7 @@ class _MainScreenState extends State<MainScreen>
                 left: 0,
                 right: 0,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                   decoration: BoxDecoration(
                     color: Colors.red.withOpacity(0.9),
                     boxShadow: [
@@ -559,8 +576,7 @@ class _AppDrawerState extends State<_AppDrawer> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -612,16 +628,14 @@ class _AppDrawerState extends State<_AppDrawer> {
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(16),
-                        border:
-                            Border.all(color: Colors.white.withOpacity(0.2)),
+                        border: Border.all(color: Colors.white.withOpacity(0.2)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.person,
-                                  color: Colors.white, size: 24),
+                              const Icon(Icons.person, color: Colors.white, size: 24),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -638,13 +652,11 @@ class _AppDrawerState extends State<_AppDrawer> {
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              const Icon(Icons.directions_car,
-                                  color: Colors.white70, size: 20),
+                              const Icon(Icons.directions_car, color: Colors.white70, size: 20),
                               const SizedBox(width: 8),
                               Text(
                                 data['vehicle_type'] ?? '',
-                                style: const TextStyle(
-                                    color: Colors.white70, fontSize: 14),
+                                style: const TextStyle(color: Colors.white70, fontSize: 14),
                               ),
                             ],
                           ),
@@ -656,8 +668,7 @@ class _AppDrawerState extends State<_AppDrawer> {
                               const SizedBox(width: 8),
                               Text(
                                 data['vehicle_number'] ?? '',
-                                style: const TextStyle(
-                                    color: Colors.white70, fontSize: 14),
+                                style: const TextStyle(color: Colors.white70, fontSize: 14),
                               ),
                             ],
                           ),
@@ -781,8 +792,7 @@ class _DrawerButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
           ),
           elevation: highlight ? 6 : 0,
-          shadowColor:
-              highlight ? Colors.amber.withOpacity(0.3) : Colors.transparent,
+          shadowColor: highlight ? Colors.amber.withOpacity(0.3) : Colors.transparent,
         ),
         onPressed: onTap,
         child: Row(
@@ -909,8 +919,7 @@ class _DashboardButtonState extends State<_DashboardButton> {
           ],
         ),
         child: Material(
-          color: Colors.white
-              .withOpacity(_pressed ? 0.18 : (isDisabled ? 0.08 : 0.13)),
+          color: Colors.white.withOpacity(_pressed ? 0.18 : (isDisabled ? 0.08 : 0.13)),
           borderRadius: BorderRadius.circular(20),
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
@@ -924,15 +933,14 @@ class _DashboardButtonState extends State<_DashboardButton> {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: (widget.iconColor ?? Colors.white)
-                        .withOpacity(isDisabled ? 0.08 : 0.13),
+                    color: (widget.iconColor ?? Colors.white).withOpacity(isDisabled ? 0.08 : 0.13),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   padding: const EdgeInsets.all(12),
                   child: Icon(widget.icon,
                       size: 40,
-                      color: (widget.iconColor ?? Colors.white)
-                          .withOpacity(isDisabled ? 0.5 : 1.0)),
+                      color:
+                          (widget.iconColor ?? Colors.white).withOpacity(isDisabled ? 0.5 : 1.0)),
                 ),
                 const SizedBox(height: 10),
                 Text(
@@ -976,8 +984,7 @@ class _DutyStatusDialogState extends State<_DutyStatusDialog> {
       _error = null;
     });
     try {
-      await getIt<AuthRepository>()
-          .setDutyStatus(onDuty ? 'on_duty' : 'off_duty');
+      await getIt<AuthRepository>().setDutyStatus(onDuty ? 'on_duty' : 'off_duty');
       setState(() {
         _onDuty = onDuty;
       });
@@ -1041,18 +1048,15 @@ class _DutyStatusDialogState extends State<_DutyStatusDialog> {
                 ],
                 if (_error != null) ...[
                   const SizedBox(height: 16),
-                  Text(_error!,
-                      style: const TextStyle(color: Colors.redAccent)),
+                  Text(_error!, style: const TextStyle(color: Colors.redAccent)),
                 ],
                 const SizedBox(height: 24),
                 Row(
                   children: [
                     Expanded(
                       child: TextButton(
-                        onPressed:
-                            _loading ? null : () => Navigator.of(context).pop(),
-                        child: const Text('Закрыть',
-                            style: TextStyle(color: Colors.white70)),
+                        onPressed: _loading ? null : () => Navigator.of(context).pop(),
+                        child: const Text('Закрыть', style: TextStyle(color: Colors.white70)),
                       ),
                     ),
                   ],

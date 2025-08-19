@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:taxi_service/core/services/queued_requests_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/utils/location_helper.dart';
 import 'package:taxi_service/core/network/api_client.dart';
@@ -16,6 +17,8 @@ import 'package:taxi_service/core/services/profile_service.dart';
 import 'package:taxi_service/domain/entities/order.dart';
 import 'package:taxi_service/presentation/widgets/circular_countdown_widget.dart';
 import 'dart:convert';
+
+import '../../domain/entities/queued_request.dart';
 
 class TaxometerScreen extends StatefulWidget {
   final int? arrivalCountdownSeconds;
@@ -872,6 +875,12 @@ class _TaxometerScreenState extends State<TaxometerScreen>
         }
       } else {
         // Dismiss loading dialog
+        final requestPayload = QueuedRequest(
+          requestId: widget.order.id,
+          priceTotal: finalPrice,
+          roadDetails: _roadDetails,
+        );
+        getIt<QueuedRequestsService>().queueRequest(requestPayload);
         if (mounted) {
           Navigator.of(context).pop();
         }
@@ -884,6 +893,12 @@ class _TaxometerScreenState extends State<TaxometerScreen>
       }
     } catch (e) {
       // Dismiss loading dialog
+      final requestPayload = QueuedRequest(
+        requestId: widget.order.id,
+        priceTotal: finalPrice,
+        roadDetails: _roadDetails,
+      );
+      getIt<QueuedRequestsService>().queueRequest(requestPayload);
       if (mounted) {
         Navigator.of(context).pop();
       }
