@@ -1,0 +1,2 @@
+/Users/mergentaganow/development/AndroidStudioProjects/taxi_hyzmat_2/android/app/.cxx/Debug/t2p711n3/x86_64/CMakeFiles/edit_cache.dir
+/Users/mergentaganow/development/AndroidStudioProjects/taxi_hyzmat_2/android/app/.cxx/Debug/t2p711n3/x86_64/CMakeFiles/rebuild_cache.dir

@@ -171,17 +171,17 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver, Lo
           elevation: 0,
           title: Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  'assets/images/tiztaxi.png',
-                  width: 32,
-                  height: 32,
-                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.local_taxi, color: Colors.white),
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Text('Resul Taxi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              // ClipRRect(
+              //   borderRadius: BorderRadius.circular(8),
+              //   child: Image.asset(
+              //     'assets/images/tiztaxi.png',
+              //     width: 32,
+              //     height: 32,
+              //     errorBuilder: (context, error, stackTrace) => const Icon(Icons.local_taxi, color: Colors.white),
+              //   ),
+              // ),
+              // const SizedBox(width: 6),
+              const Text('Resul Taxi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold,fontSize: 16)),
               const Spacer(),
               // Balance
               GestureDetector(

@@ -1,0 +1,1 @@
+/Users/mergentaganow/development/AndroidStudioProjects/taxi_hyzmat_2/build/app/intermediates/cxx/Debug/t2p711n3/obj/x86_64

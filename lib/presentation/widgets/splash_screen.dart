@@ -13,7 +13,7 @@ class SplashScreen extends StatelessWidget {
           children: [
             // Logo image
             Image.asset(
-              'assets/images/tiztaxi.png',
+              'assets/images/logo_no_back.png',
               width: 200,
               height: 200,
               fit: BoxFit.contain,

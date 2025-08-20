@@ -1,0 +1,2 @@
+/Users/mergentaganow/development/AndroidStudioProjects/taxi_hyzmat_2/android/app/.cxx/RelWithDebInfo/16305c1c/armeabi-v7a/CMakeFiles/edit_cache.dir
+/Users/mergentaganow/development/AndroidStudioProjects/taxi_hyzmat_2/android/app/.cxx/RelWithDebInfo/16305c1c/armeabi-v7a/CMakeFiles/rebuild_cache.dir
