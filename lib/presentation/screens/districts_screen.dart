@@ -25,7 +25,7 @@ class _DistrictsScreenState extends State<DistrictsScreen>
   bool _isRegistering = false;
   bool _autoSwitchRegions = false;
   bool _isAutoSwitchForcedByBackend = false;
-  bool _autoModeEnabled = false;
+  final bool _autoModeEnabled = false;
   // Map<int, Map<String, dynamic>> _districtStats = {};
   StreamSubscription<Map<String, dynamic>?>? _locationSubscription;
 
@@ -193,7 +193,7 @@ class _DistrictsScreenState extends State<DistrictsScreen>
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Район успешно изменён')),
+          const SnackBar(content: Text('Район успешно изменён')),
         );
         // Fetch districts data again to update the UI
         context.read<DistrictsCubit>().fetchDistricts();
@@ -204,7 +204,7 @@ class _DistrictsScreenState extends State<DistrictsScreen>
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка при изменении района')),
+          const SnackBar(content: Text('Ошибка при изменении района')),
         );
       }
     }
@@ -222,7 +222,7 @@ class _DistrictsScreenState extends State<DistrictsScreen>
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Вы снялись с отметок района')),
+          const SnackBar(content: Text('Вы снялись с отметок района')),
         );
         // Fetch districts data again to update the UI
         context.read<DistrictsCubit>().fetchDistricts();
@@ -233,7 +233,7 @@ class _DistrictsScreenState extends State<DistrictsScreen>
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка при снятии с отметок')),
+          const SnackBar(content: Text('Ошибка при снятии с отметок')),
         );
       }
     }
@@ -265,479 +265,398 @@ class _DistrictsScreenState extends State<DistrictsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.grey[900],
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.orange,
         elevation: 0,
+        title: const Text('Районы', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF232526), Color(0xFF414345)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.only(
-              top: kToolbarHeight + 4, left: 16, right: 16, bottom: 16),
-          child: !_profileLoaded
-              ? const Center(child: CircularProgressIndicator())
-              : Column(
-                  children: [
-                    // Title
-                    const Text(
-                      'Районы',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
+      body: !_profileLoaded
+          ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+          : Column(
+              children: [
+                // Auto switch toggle
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[800],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Switch(
+                        value: _autoModeEnabled ? true : _autoSwitchRegions,
+                        onChanged: (_autoModeEnabled || _isAutoSwitchForcedByBackend)
+                            ? null
+                            : (value) async {
+                                final newValue = value;
+                                setState(() {
+                                  _autoSwitchRegions = newValue;
+                                });
+
+                                // Save to local storage
+                                final settingsService = getIt<SettingsService>();
+                                await settingsService.setAutoSwitchRegions(newValue);
+
+                                // Start or stop location monitoring based on new value
+                                if (newValue == true) {
+                                  _startLocationMonitoring();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Автопереключение включено'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                } else {
+                                  _stopLocationMonitoring();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Автопереключение отключено'),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                }
+                              },
+                        activeColor: Colors.orange,
+                        inactiveThumbColor: Colors.grey[600],
+                        inactiveTrackColor: Colors.grey[700],
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Auto switch checkbox
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
-                          width: 1,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Автопереключение районов',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (_autoModeEnabled)
+                              const Text(
+                                'Включено автоматически',
+                                style: TextStyle(color: Colors.grey, fontSize: 12),
+                              )
+                            else if (_isAutoSwitchForcedByBackend)
+                              const Text(
+                                'Включено сервером',
+                                style: TextStyle(color: Colors.grey, fontSize: 12),
+                              ),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Checkbox(
-                            value: _autoModeEnabled ? true : _autoSwitchRegions,
-                            onChanged: (_autoModeEnabled ||
-                                    _isAutoSwitchForcedByBackend)
-                                ? null
-                                : (value) async {
-                                    final newValue = value ?? false;
-                                    setState(() {
-                                      _autoSwitchRegions = newValue;
-                                    });
+                    ],
+                  ),
+                ),
 
-                                    // Save to local storage
-                                    final settingsService =
-                                        getIt<SettingsService>();
-                                    await settingsService
-                                        .setAutoSwitchRegions(newValue);
-
-                                    // Start or stop location monitoring based on new value
-                                    if (newValue == true) {
-                                      print(
-                                          '[DISTRICTS] Auto-switch enabled, starting location monitoring...');
-                                      _startLocationMonitoring();
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                              'Автоматическое переключение регионов включено'),
-                                          backgroundColor: Colors.green,
-                                        ),
-                                      );
-                                    } else {
-                                      print(
-                                          '[DISTRICTS] Auto-switch disabled, stopping location monitoring...');
-                                      _stopLocationMonitoring();
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                              'Автоматическое переключение регионов отключено'),
-                                          backgroundColor: Colors.orange,
-                                        ),
-                                      );
-                                    }
-                                  },
-                            activeColor: (_autoModeEnabled ||
-                                    _isAutoSwitchForcedByBackend)
-                                ? Colors.grey
-                                : Colors.green,
-                            checkColor: Colors.white,
+                // Districts grid
+                Expanded(
+                  child: BlocBuilder<DistrictsCubit, DistrictsState>(
+                    builder: (context, state) {
+                      if (state is DistrictsLoading) {
+                        return const Center(child: CircularProgressIndicator(color: Colors.orange));
+                      } else if (state is DistrictsError) {
+                        return const Center(
+                          child: Text(
+                            'Ошибка загрузки районов',
+                            style: TextStyle(color: Colors.white),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Автоматически переключать регионы',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                if (_autoModeEnabled)
-                                  const Text(
-                                    '(включено автоматически)',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 12,
-                                    ),
-                                  )
-                                else if (_isAutoSwitchForcedByBackend)
-                                  const Text(
-                                    '(включено сервером)',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Districts grid
-                    Expanded(
-                      child: BlocBuilder<DistrictsCubit, DistrictsState>(
-                        builder: (context, state) {
-                          if (state is DistrictsLoading) {
-                            return const Center(
-                                child: CircularProgressIndicator());
-                          } else if (state is DistrictsError) {
-                            return Center(
-                                child: Text('Ошибка загрузки районов'));
-                          } else if (state is DistrictsLoaded) {
-                            final districts = state.districts;
-                            if (districts.isEmpty) {
-                              return Center(
-                                  child: Text('Нет данных о районах'));
-                            }
-                            return GridView.builder(
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                                childAspectRatio: 1.2,
-                              ),
-                              padding: const EdgeInsets.only(top: 15),
-                              itemCount: districts.length,
-                              itemBuilder: (context, index) {
-                                final district = districts[index];
-                                final slug = district['slug'] ?? '';
-                                final districtId = district['id'] as int?;
-                                final isDriverDistrict =
-                                    _driverDistrict == slug;
-
-                                // Fetch stats for this district
-                                // if (districtId != null) {
-                                //   _fetchDistrictStats(districtId, district);
-                                // }
-
-                                // final stats = districtId != null
-                                //     ? _districtStats[districtId]
-                                //     : null;
-
-                                return GestureDetector(
-                                  onTap: _isRegistering
-                                      ? null
-                                      : () {
-                                          showDialog(
-                                            context: context,
-                                            builder: (context) => Dialog(
-                                              backgroundColor:
-                                                  Colors.transparent,
-                                              child: ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                                child: BackdropFilter(
-                                                  filter: ImageFilter.blur(
-                                                      sigmaX: 10, sigmaY: 10),
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            24),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.white
-                                                          .withOpacity(0.1),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              16),
-                                                      border: Border.all(
-                                                        color: Colors.white
-                                                            .withOpacity(0.2),
-                                                        width: 1,
-                                                      ),
-                                                    ),
-                                                    child: Column(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .stretch,
-                                                      children: [
-                                                        Text(
-                                                          slug.isNotEmpty
-                                                              ? slug
-                                                              : 'Район',
-                                                          style:
-                                                              const TextStyle(
-                                                            fontSize: 20,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            color: Colors.white,
-                                                          ),
-                                                          textAlign:
-                                                              TextAlign.center,
-                                                        ),
-                                                        const SizedBox(
-                                                            height: 24),
-                                                        // Only show register button if auto-switch regions is disabled
-                                                        if (!_autoSwitchRegions) ...[
-                                                          ElevatedButton(
-                                                            onPressed: () {
-                                                              Navigator.of(
-                                                                      context)
-                                                                  .pop();
-                                                              if (isDriverDistrict) {
-                                                                _unregisterDistrict(
-                                                                    district[
-                                                                        'id'],
-                                                                    slug);
-                                                              } else {
-                                                                _registerDistrict(
-                                                                    district[
-                                                                        'id'],
-                                                                    slug);
-                                                              }
-                                                            },
-                                                            style:
-                                                                ElevatedButton
-                                                                    .styleFrom(
-                                                              backgroundColor:
-                                                                  isDriverDistrict
-                                                                      ? Colors
-                                                                          .red
-                                                                      : Colors
-                                                                          .green,
-                                                              foregroundColor:
-                                                                  Colors.white,
-                                                              minimumSize:
-                                                                  const Size
-                                                                      .fromHeight(
-                                                                      48),
-                                                            ),
-                                                            child: Text(isDriverDistrict
-                                                                ? 'Сняться с отметок'
-                                                                : 'Зарегистрироваться'),
-                                                          ),
-                                                          const SizedBox(
-                                                              height: 16),
-                                                        ] else ...[
-                                                          // Show info message when auto-switch is enabled
-                                                          Container(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .all(12),
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color: Colors.blue
-                                                                  .withOpacity(
-                                                                      0.1),
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          8),
-                                                              border:
-                                                                  Border.all(
-                                                                color: Colors
-                                                                    .blue
-                                                                    .withOpacity(
-                                                                        0.3),
-                                                                width: 1,
-                                                              ),
-                                                            ),
-                                                            child: Row(
-                                                              children: [
-                                                                Icon(
-                                                                  Icons
-                                                                      .info_outline,
-                                                                  color: Colors
-                                                                      .blueAccent,
-                                                                  size: 20,
-                                                                ),
-                                                                const SizedBox(
-                                                                    width: 8),
-                                                                Expanded(
-                                                                  child: Text(
-                                                                    'Автоматическое переключение регионов включено. Регистрация происходит автоматически.',
-                                                                    style:
-                                                                        TextStyle(
-                                                                      color: Colors
-                                                                          .blueAccent,
-                                                                      fontSize:
-                                                                          12,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                          const SizedBox(
-                                                              height: 16),
-                                                        ],
-                                                        ElevatedButton(
-                                                          onPressed: () {
-                                                            Navigator.of(
-                                                                    context)
-                                                                .pop();
-                                                            _showCarList(
-                                                                district['id']);
-                                                          },
-                                                          style: ElevatedButton
-                                                              .styleFrom(
-                                                            backgroundColor:
-                                                                Colors.blue,
-                                                            foregroundColor:
-                                                                Colors.white,
-                                                            minimumSize:
-                                                                const Size
-                                                                    .fromHeight(
-                                                                    48),
-                                                          ),
-                                                          child: const Text(
-                                                              'Список машин'),
-                                                        ),
-                                                        const SizedBox(
-                                                            height: 16),
-                                                        ElevatedButton(
-                                                          onPressed: () {
-                                                            Navigator.of(
-                                                                    context)
-                                                                .pop();
-                                                            Navigator.of(
-                                                                    context)
-                                                                .push(
-                                                              MaterialPageRoute(
-                                                                builder: (_) =>
-                                                                    FreeRequestsScreen(
-                                                                        districtId:
-                                                                            district['id']),
-                                                              ),
-                                                            );
-                                                          },
-                                                          style: ElevatedButton
-                                                              .styleFrom(
-                                                            backgroundColor:
-                                                                Colors.white
-                                                                    .withOpacity(
-                                                                        0.08),
-                                                            foregroundColor:
-                                                                Colors.white,
-                                                            minimumSize:
-                                                                const Size
-                                                                    .fromHeight(
-                                                                    48),
-                                                          ),
-                                                          child: const Text(
-                                                              'Свободные заказы'),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                  child: Stack(
-                                    children: [
-                                      Card(
-                                        elevation: 4,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                        ),
-                                        color: isDriverDistrict
-                                            ? Colors.green
-                                            : null,
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(10),
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                slug.isNotEmpty
-                                                    ? slug
-                                                    : 'Район',
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isDriverDistrict
-                                                      ? Colors.white
-                                                      : null,
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                              const SizedBox(height: 5),
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceEvenly,
-                                                children: [
-                                                  _StatItem(
-                                                    icon: Icons.queue,
-                                                    value:
-                                                        '${district['driver_current_queue'] ?? 0}',
-                                                    color: Colors.white,
-                                                  ),
-                                                  _StatItem(
-                                                    icon: Icons.local_taxi,
-                                                    value:
-                                                        '${district['queue_count'] ?? 0}',
-                                                    color: Colors.white,
-                                                  ),
-                                                  _StatItem(
-                                                    icon: Icons.assignment,
-                                                    value:
-                                                        '${district['not_accepted_request_count'] ?? 0}',
-                                                    color: Colors.white,
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      // if (_isRegistering && !isDriverDistrict)
-                                      //   Positioned.fill(
-                                      //     child: Container(
-                                      //       decoration: BoxDecoration(
-                                      //         color:
-                                      //             Colors.black.withOpacity(0.2),
-                                      //         borderRadius:
-                                      //             BorderRadius.circular(16),
-                                      //       ),
-                                      //       child: const Center(
-                                      //         child:
-                                      //             CircularProgressIndicator(),
-                                      //       ),
-                                      //     ),
-                                      //   ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            );
-                          }
-                          // Initial state: trigger fetch
+                        );
+                      } else if (state is DistrictsLoaded) {
+                        final districts = state.districts;
+                        if (districts.isEmpty) {
                           return const Center(
-                              child: CircularProgressIndicator());
-                        },
+                            child: Text(
+                              'Нет данных о районах',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          );
+                        }
+                        return GridView.builder(
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 1.1,
+                          ),
+                          padding: const EdgeInsets.all(16),
+                          itemCount: districts.length,
+                          itemBuilder: (context, index) {
+                            final district = districts[index];
+                            final slug = district['slug'] ?? '';
+                            final districtId = district['id'] as int?;
+                            final isDriverDistrict = _driverDistrict == slug;
+
+                            return _DistrictCard(
+                              district: district,
+                              slug: slug,
+                              isDriverDistrict: isDriverDistrict,
+                              isRegistering: _isRegistering,
+                              autoSwitchRegions: _autoSwitchRegions,
+                              onTap: () => _showDistrictDialog(district, slug, isDriverDistrict),
+                            );
+                          },
+                        );
+                      }
+                      return const Center(child: CircularProgressIndicator(color: Colors.orange));
+                    },
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  void _showDistrictDialog(Map<String, dynamic> district, String slug, bool isDriverDistrict) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[800],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          slug.isNotEmpty ? slug : 'Район',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Stats
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _StatColumn(
+                  icon: Icons.queue,
+                  label: 'Очередь',
+                  value: '${district['driver_current_queue'] ?? 0}',
+                ),
+                _StatColumn(
+                  icon: Icons.local_taxi,
+                  label: 'Машины',
+                  value: '${district['queue_count'] ?? 0}',
+                ),
+                _StatColumn(
+                  icon: Icons.assignment,
+                  label: 'Заказы',
+                  value: '${district['not_accepted_request_count'] ?? 0}',
+                ),
+              ],
+            ),
+            if (_autoSwitchRegions) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Автопереключение включено',
+                        style: TextStyle(color: Colors.blue, fontSize: 12),
                       ),
                     ),
                   ],
                 ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          // Register/Unregister button (only if auto-switch is disabled)
+          if (!_autoSwitchRegions)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  if (isDriverDistrict) {
+                    _unregisterDistrict(district['id'], slug);
+                  } else {
+                    _registerDistrict(district['id'], slug);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDriverDistrict ? Colors.red : Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(
+                  isDriverDistrict ? 'Сняться с отметок' : 'Зарегистрироваться',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          const SizedBox(height: 8),
+          // Car list button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showCarList(district['id']);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Список машин', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Free requests button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FreeRequestsScreen(districtId: district['id']),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Свободные заказы', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DistrictCard extends StatelessWidget {
+  final Map<String, dynamic> district;
+  final String slug;
+  final bool isDriverDistrict;
+  final bool isRegistering;
+  final bool autoSwitchRegions;
+  final VoidCallback onTap;
+
+  const _DistrictCard({
+    required this.district,
+    required this.slug,
+    required this.isDriverDistrict,
+    required this.isRegistering,
+    required this.autoSwitchRegions,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: isRegistering ? null : onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: isDriverDistrict
+                ? const LinearGradient(
+                    colors: [Colors.green, Colors.lightGreen],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : LinearGradient(
+                    colors: [Colors.grey[700]!, Colors.grey[600]!],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDriverDistrict 
+                  ? Colors.green.withOpacity(0.3) 
+                  : Colors.orange.withOpacity(0.3),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isDriverDistrict 
+                    ? Colors.green.withOpacity(0.3)
+                    : Colors.black.withOpacity(0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // District name
+                Text(
+                  slug.isNotEmpty ? slug : 'Район',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+                // Stats row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _StatItem(
+                      icon: Icons.queue,
+                      value: '${district['driver_current_queue'] ?? 0}',
+                    ),
+                    _StatItem(
+                      icon: Icons.local_taxi,
+                      value: '${district['queue_count'] ?? 0}',
+                    ),
+                    _StatItem(
+                      icon: Icons.assignment,
+                      value: '${district['not_accepted_request_count'] ?? 0}',
+                    ),
+                  ],
+                ),
+                // Active indicator
+                if (isDriverDistrict) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'АКТИВЕН',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -747,40 +666,66 @@ class _DistrictsScreenState extends State<DistrictsScreen>
 class _StatItem extends StatelessWidget {
   final IconData icon;
   final String value;
-  final String? label;
-  final Color? color;
 
   const _StatItem({
     required this.icon,
     required this.value,
-    this.label,
-    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: color),
+        Icon(icon, size: 16, color: Colors.white70),
+        const SizedBox(height: 2),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 18,
+          style: const TextStyle(
+            fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: color,
+            color: Colors.white,
           ),
         ),
-        if (label != null) ...[
-          const SizedBox(height: 2),
-          Text(
-            label!,
-            style: TextStyle(
-              fontSize: 10,
-              color: color?.withOpacity(0.8),
-            ),
-            textAlign: TextAlign.center,
+      ],
+    );
+  }
+}
+
+class _StatColumn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _StatColumn({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 24, color: Colors.orange),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
-        ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.white70,
+          ),
+        ),
       ],
     );
   }

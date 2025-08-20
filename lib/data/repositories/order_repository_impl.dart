@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:taxi_service/core/network/api_client.dart';
 import 'package:taxi_service/core/network/socket_client.dart';

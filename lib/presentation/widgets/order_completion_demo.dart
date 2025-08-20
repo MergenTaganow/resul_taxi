@@ -185,7 +185,7 @@ class _DemoOrderCompletionScreen extends StatelessWidget {
                           textBaseline: TextBaseline.alphabetic,
                           children: [
                             Text(
-                              '${finalPrice.toStringAsFixed(2)}',
+                              finalPrice.toStringAsFixed(2),
                               style: const TextStyle(
                                 color: Colors.green,
                                 fontSize: 80,

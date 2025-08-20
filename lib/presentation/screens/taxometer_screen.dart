@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:taxi_service/core/services/additional_settings_service.dart';
@@ -92,7 +91,13 @@ class _TaxometerScreenState extends State<TaxometerScreen>
 
     _taxometerService.onRequestCancelled = () {
       print('Ali bot');
-      Navigator.of(context).pop();
+      Navigator.of(context)
+        ..popUntil((route) => route.isFirst)
+        ..push(
+          MaterialPageRoute(
+            builder: (context) => const DistrictsScreen(),
+          ),
+        );
     };
 
     _taxometerService.addStateChangeListener(_stateChangeListener);
@@ -277,7 +282,7 @@ class _TaxometerScreenState extends State<TaxometerScreen>
       );
       getIt<QueuedRequestsService>().queueRequest(requestPayload);
     }
-    stopBackgroundService();
+    await stopBackgroundService();
 
     // getIt<SoundService>().playOrderCompleteSound();
 
@@ -728,7 +733,7 @@ class _TaxometerScreenState extends State<TaxometerScreen>
                       const SizedBox(height: 20),
                       if (_currentTariffName != null)
                         Text(
-                          '${_currentTariffName}',
+                          '$_currentTariffName',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 22,
@@ -955,7 +960,7 @@ class _TaxometerScreenState extends State<TaxometerScreen>
                               Expanded(
                                 child: _TariffCard(
                                   label: 'Подача',
-                                  value: '${_baseFare.toStringAsFixed(2)}',
+                                  value: _baseFare.toStringAsFixed(2),
                                   unit: 'тмт',
                                 ),
                               ),
@@ -963,7 +968,7 @@ class _TaxometerScreenState extends State<TaxometerScreen>
                               Expanded(
                                 child: _TariffCard(
                                   label: 'Расстояние',
-                                  value: '${_perKmRate.toStringAsFixed(2)}',
+                                  value: _perKmRate.toStringAsFixed(2),
                                   unit: 'тмт/км',
                                 ),
                               ),
@@ -971,7 +976,7 @@ class _TaxometerScreenState extends State<TaxometerScreen>
                               Expanded(
                                 child: _TariffCard(
                                   label: 'Ожидание',
-                                  value: '${_waitingRate.toStringAsFixed(2)}',
+                                  value: _waitingRate.toStringAsFixed(2),
                                   unit: 'тмт/мин',
                                 ),
                               ),
@@ -1045,7 +1050,7 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final highlightColor = Colors.orangeAccent;
+    const highlightColor = Colors.orangeAccent;
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Container(
@@ -1326,7 +1331,7 @@ class OrderCompletionScreen extends StatelessWidget {
                           textBaseline: TextBaseline.alphabetic,
                           children: [
                             Text(
-                              '${finalPrice}',
+                              '$finalPrice',
                               style: const TextStyle(
                                 color: Colors.green,
                                 fontSize: 80,

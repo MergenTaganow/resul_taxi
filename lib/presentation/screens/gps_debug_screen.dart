@@ -17,36 +17,36 @@ class _GpsDebugScreenState extends State<GpsDebugScreen> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: const Padding(
+        padding: EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'GPS Accuracy Test',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 16),
-            const Text(
+            SizedBox(height: 16),
+            Text(
               'This screen helps you monitor GPS accuracy and movement detection. '
               'Stay still and observe if the location updates when you\'re not moving.',
               style: TextStyle(fontSize: 16),
             ),
-            const SizedBox(height: 24),
-            const GpsMonitorWidget(),
-            const SizedBox(height: 24),
-            const Text(
+            SizedBox(height: 24),
+            GpsMonitorWidget(),
+            SizedBox(height: 24),
+            Text(
               'Instructions:',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            SizedBox(height: 8),
+            Text(
               '1. Place your device on a stable surface\n'
               '2. Stay completely still for 30 seconds\n'
               '3. Watch the "Total Distance" value\n'
@@ -55,16 +55,16 @@ class _GpsDebugScreenState extends State<GpsDebugScreen> {
               '6. Good accuracy should be under 10 meters',
               style: TextStyle(fontSize: 14),
             ),
-            const SizedBox(height: 24),
-            const Text(
+            SizedBox(height: 24),
+            Text(
               'Expected Behavior:',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            SizedBox(height: 8),
+            Text(
               '• When stationary: Total Distance should remain stable\n'
               '• GPS Accuracy should be under 15 meters\n'
               '• Updates should be infrequent when not moving\n'

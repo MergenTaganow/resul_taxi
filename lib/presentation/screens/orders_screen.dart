@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:taxi_service/domain/entities/order.dart';
 import 'package:taxi_service/presentation/blocs/order/order_bloc.dart';
 import 'package:taxi_service/presentation/blocs/order/order_state.dart';
-import 'package:taxi_service/presentation/widgets/order_card.dart';
 
 class OrdersScreen extends StatelessWidget {
   const OrdersScreen({super.key});

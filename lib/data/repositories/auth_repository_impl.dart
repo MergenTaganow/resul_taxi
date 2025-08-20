@@ -1,6 +1,5 @@
 import 'package:taxi_service/core/network/api_client.dart';
 import 'package:taxi_service/core/network/socket_client.dart';
-import 'package:taxi_service/domain/entities/driver.dart';
 import 'package:taxi_service/domain/repositories/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taxi_service/core/services/profile_service.dart';

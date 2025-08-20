@@ -1,4 +1,3 @@
-import 'package:taxi_service/domain/entities/driver.dart';
 
 abstract class AuthRepository {
   Future<String> login(String username, String password);

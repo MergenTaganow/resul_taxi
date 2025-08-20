@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> with LocationWarningMixin {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         backgroundColor: theme.colorScheme.primary.withOpacity(0.95),
         elevation: 0,
@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> with LocationWarningMixin {
             ),
             const SizedBox(width: 12),
             Text(
-              'Такси Водитель',
+              'Resul Taxi',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.onSurface,

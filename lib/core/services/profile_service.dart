@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taxi_service/domain/repositories/auth_repository.dart';
 import 'package:taxi_service/core/di/injection.dart';
-import 'package:taxi_service/core/services/settings_service.dart';
 
 class ProfileService {
   static final ProfileService _instance = ProfileService._internal();

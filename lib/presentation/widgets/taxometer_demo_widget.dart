@@ -13,9 +13,9 @@ class _TaxometerDemoWidgetState extends State<TaxometerDemoWidget>
     with TickerProviderStateMixin {
   bool _freeWaitingActive = false;
   int _freeWaitingCountdown = 120;
-  int _freeWaitingTime = 120;
-  int _elapsedTime = 156; // 2:36
-  double _distance = 2.543;
+  final int _freeWaitingTime = 120;
+  final int _elapsedTime = 156; // 2:36
+  final double _distance = 2.543;
   Timer? _freeWaitingTimer;
 
   late AnimationController _freeWaitingAnimationController;
@@ -260,7 +260,7 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final highlightColor = Colors.orangeAccent;
+    const highlightColor = Colors.orangeAccent;
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Container(

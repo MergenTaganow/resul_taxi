@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:taxi_service/core/di/injection.dart';
-import 'package:taxi_service/core/services/taxometer_service.dart';
 import 'package:taxi_service/domain/repositories/auth_repository.dart';
 import 'package:taxi_service/core/mixins/location_warning_mixin.dart';
 import 'package:taxi_service/presentation/screens/gps_debug_screen.dart';
@@ -91,189 +90,314 @@ class _SettingsScreenState extends State<SettingsScreen> with LocationWarningMix
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[900],
       appBar: AppBar(
-        title: const Text('Настройки'),
+        backgroundColor: Colors.orange,
+        elevation: 0,
+        title: const Text('Настройки', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // const Text(
-              //   'Статус водителя',
-              //   style: TextStyle(
-              //     color: Colors.white,
-              //     fontSize: 20,
-              //     fontWeight: FontWeight.bold,
-              //   ),
-              // ),
-              // const SizedBox(height: 24),
-              // Duty Status
-              // Row(
-              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //   children: [
-              //     const Text('Статус водителя',
-              //         style: TextStyle(color: Colors.white, fontSize: 16)),
-              //     _dutyLoading
-              //         ? const SizedBox(
-              //             width: 48,
-              //             height: 24,
-              //             child: Center(
-              //               child: SizedBox(
-              //                 width: 24,
-              //                 height: 24,
-              //                 child: CircularProgressIndicator(
-              //                   strokeWidth: 3,
-              //                   valueColor: AlwaysStoppedAnimation<Color>(
-              //                       Colors.greenAccent),
-              //                 ),
-              //               ),
-              //             ),
-              //           )
-              //         : Switch(
-              //             value: _onDuty,
-              //             onChanged: (val) => _setDutyStatus(val),
-              //             activeColor: Colors.greenAccent,
-              //             inactiveThumbColor: Colors.redAccent,
-              //           ),
-              //   ],
-              // ),
-              // const SizedBox(height: 24),
-
-              // Auto Mode for Order Acceptance
-              const SizedBox(height: 32),
-              if (_loading) ...[
-                const Center(child: CircularProgressIndicator()),
-              ] else if (_error != null) ...[
-                Text(_error!, style: const TextStyle(color: Colors.redAccent)),
-              ] else ...[
-                ..._settings.map((setting) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Card(
-                        color: Colors.white.withOpacity(0.08),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 0,
-                        child: ListTile(
-                          leading: _buildSettingIcon(setting['type']),
-                          title: Text(
-                            tr[setting['description']] ?? setting['key'],
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
-                          ),
-                          trailing: setting['type'] == 'boolean'
-                              ? Switch(
-                                  value: setting['value'].toString() == 'true',
-                                  onChanged: null,
-                                  activeColor: Colors.greenAccent,
-                                  inactiveThumbColor: Colors.redAccent,
-                                )
-                              : Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      setting['description'].contains('Commute')
-                                          ? '${(int.parse(setting['value']) / 1000 / 60).round()} мин'
-                                          : setting['value'].toString(),
-                                      style: const TextStyle(
-                                        color: Colors.greenAccent,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    if (setting['key'] == 'contacts') ...[
-                                      const SizedBox(width: 8),
-                                      GestureDetector(
-                                        onTap: () async {
-                                          final cleanPhone = setting['value']
-                                              .replaceAll(RegExp(r'[\s\-\(\)]'), '');
-                                          final url = 'tel:$cleanPhone';
-                                          await launchUrl(Uri.parse(url));
-                                        },
-                                        child: const Padding(
-                                          padding: EdgeInsets.symmetric(vertical: 8),
-                                          child: CircleAvatar(
-                                            backgroundColor: Colors.green,
-                                            radius: 26,
-                                            child: Icon(Icons.call, color: Colors.white, size: 16),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                        ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red, size: 64),
+                      const SizedBox(height: 16),
+                      Text(
+                        _error!,
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                        textAlign: TextAlign.center,
                       ),
-                    )),
-              ],
-              const SizedBox(height: 32),
-
-              // GPS Debug Section
-              const Text(
-                'Отладка',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Card(
-                color: Colors.white.withOpacity(0.08),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                elevation: 0,
-                child: ListTile(
-                  leading: const Icon(Icons.gps_fixed, color: Colors.blueAccent, size: 32),
-                  title: const Text(
-                    'GPS Debug',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
-                  subtitle: const Text(
-                    'Test GPS accuracy and movement detection',
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                    ),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const GpsDebugScreen(),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _fetchProfileAndSettings,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Повторить'),
                       ),
-                    );
-                  },
+                    ],
+                  ),
+                )
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Duty Status Section
+                      _buildSectionHeader('Статус водителя'),
+                      const SizedBox(height: 12),
+                      _buildDutyStatusCard(),
+                      const SizedBox(height: 24),
+
+                      // Settings Section
+                      _buildSectionHeader('Настройки приложения'),
+                      const SizedBox(height: 12),
+                      ..._settings.map((setting) => _buildSettingCard(setting)),
+                      const SizedBox(height: 24),
+
+                      // Debug Section
+                      _buildSectionHeader('Отладка'),
+                      const SizedBox(height: 12),
+                      _buildDebugCard(),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
     );
   }
 
-  Widget _buildSettingIcon(String? type) {
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+
+  Widget _buildDutyStatusCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[800],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _onDuty ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            _onDuty ? Icons.directions_car : Icons.directions_car_filled,
+            color: _onDuty ? Colors.green : Colors.red,
+            size: 24,
+          ),
+        ),
+        title: Text(
+          _onDuty ? 'На смене' : 'Не на смене',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+        subtitle: Text(
+          _onDuty ? 'Готов принимать заказы' : 'Не принимает заказы',
+          style: TextStyle(
+            color: Colors.grey[400],
+            fontSize: 12,
+          ),
+        ),
+        trailing: _dutyLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                ),
+              )
+            : Switch(
+                value: _onDuty,
+                onChanged: (val) => _setDutyStatus(val),
+                activeColor: Colors.green,
+                inactiveThumbColor: Colors.red,
+                inactiveTrackColor: Colors.red.withOpacity(0.3),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildSettingCard(Map<String, dynamic> setting) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[800],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withOpacity(0.2)),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _getSettingIconColor(setting['type']).withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            _getSettingIcon(setting['type']),
+            color: _getSettingIconColor(setting['type']),
+            size: 24,
+          ),
+        ),
+        title: Text(
+          tr[setting['description']] ?? setting['key'],
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+        subtitle: Text(
+          _getSettingDescription(setting),
+          style: TextStyle(
+            color: Colors.grey[400],
+            fontSize: 12,
+          ),
+        ),
+        trailing: setting['type'] == 'boolean'
+            ? Switch(
+                value: setting['value'].toString() == 'true',
+                onChanged: null, // Read-only for now
+                activeColor: Colors.green,
+                inactiveThumbColor: Colors.red,
+                inactiveTrackColor: Colors.red.withOpacity(0.3),
+              )
+            : setting['key'] == 'contacts'
+                ? _buildCallButton(setting['value'])
+                : _buildValueDisplay(setting),
+      ),
+    );
+  }
+
+  Widget _buildCallButton(String phoneNumber) {
+    return GestureDetector(
+      onTap: () async {
+        final cleanPhone = phoneNumber.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+        final url = 'tel:$cleanPhone';
+        await launchUrl(Uri.parse(url));
+      },
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.green,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(Icons.call, color: Colors.white, size: 20),
+      ),
+    );
+  }
+
+  Widget _buildValueDisplay(Map<String, dynamic> setting) {
+    String displayValue = setting['description'].contains('Commute')
+        ? '${(int.parse(setting['value']) / 1000 / 60).round()} мин'
+        : setting['value'].toString();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+      ),
+      child: Text(
+        displayValue,
+        style: const TextStyle(
+          color: Colors.orange,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDebugCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[800],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.blue.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.gps_fixed, color: Colors.blue, size: 24),
+        ),
+        title: const Text(
+          'GPS Debug',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+        subtitle: const Text(
+          'Тест точности GPS и обнаружения движения',
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: 12,
+          ),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const GpsDebugScreen(),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  IconData _getSettingIcon(String? type) {
     switch (type) {
       case 'boolean':
-        return const Icon(Icons.toggle_on, color: Colors.blueAccent, size: 32);
+        return Icons.toggle_on;
       case 'number':
-        return const Icon(Icons.timer, color: Colors.orangeAccent, size: 28);
+        return Icons.timer;
+      case 'string':
+        return Icons.phone;
       default:
-        return const Icon(Icons.settings, color: Colors.white54, size: 28);
+        return Icons.settings;
     }
   }
+
+  Color _getSettingIconColor(String? type) {
+    switch (type) {
+      case 'boolean':
+        return Colors.blue;
+      case 'number':
+        return Colors.orange;
+      case 'string':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getSettingDescription(Map<String, dynamic> setting) {
+    switch (setting['key']) {
+      case 'auto_mode':
+        return 'Автоматическое принятие заказов';
+      case 'commute_urgent':
+        return 'Время быстрого прибытия';
+      case 'commute_normal_mode':
+        return 'Время обычного прибытия';
+      case 'commute_free_mode':
+        return 'Время свободного прибытия';
+      case 'alerts':
+        return 'Уведомления о заказах';
+      case 'chats':
+        return 'Настройки сообщений';
+      case 'contacts':
+        return 'Контакт администратора';
+      default:
+        return setting['description'] ?? '';
+    }
+  }
+
+
 }

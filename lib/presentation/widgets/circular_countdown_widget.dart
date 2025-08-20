@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class CircularCountdownWidget extends StatefulWidget {
@@ -108,7 +107,7 @@ class _CircularCountdownWidgetState extends State<CircularCountdownWidget>
       builder: (context, child) {
         return Transform.scale(
           scale: isNegative ? _pulseAnimation.value : 1.0,
-          child: Container(
+          child: SizedBox(
             width: widget.size,
             height: widget.size,
             child: Stack(
@@ -208,11 +207,11 @@ class _CircularCountdownWidgetState extends State<CircularCountdownWidget>
     final remainingSeconds = seconds % 60;
 
     if (minutes < 60) {
-      return '${minutes}:${remainingSeconds.toString().padLeft(2, '0')}';
+      return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
     }
 
     final hours = minutes ~/ 60;
     final remainingMinutes = minutes % 60;
-    return '${hours}:${remainingMinutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+    return '$hours:${remainingMinutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 }

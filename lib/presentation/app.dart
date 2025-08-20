@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taxi_service/core/di/injection.dart';
 import 'package:taxi_service/core/network/socket_client.dart';
 import 'package:taxi_service/core/services/taxometer_service.dart';
@@ -23,7 +21,6 @@ import 'package:taxi_service/presentation/screens/taxometer_screen.dart';
 import 'dart:async';
 import 'package:taxi_service/core/services/sound_service.dart';
 import 'package:taxi_service/core/services/notification_listener_service.dart';
-import 'package:taxi_service/presentation/widgets/gps_monitor_widget.dart';
 import 'package:taxi_service/presentation/widgets/taxometer_overlay_widget.dart';
 import 'package:taxi_service/presentation/widgets/splash_screen.dart';
 import '../core/services/background_service.dart';
@@ -549,9 +546,9 @@ class _OrderDialogWithCommuteTypesState extends State<_OrderDialogWithCommuteTyp
                     const SizedBox(height: 30),
                     // Commute types section
                     _loading
-                        ? Container(
+                        ? const SizedBox(
                             height: 120,
-                            child: const Center(
+                            child: Center(
                               child: CircularProgressIndicator(
                                 valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                               ),

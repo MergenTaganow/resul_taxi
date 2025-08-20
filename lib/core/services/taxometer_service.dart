@@ -1,24 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-import 'package:flutter_foreground_task/task_handler.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taxi_service/core/services/additional_settings_service.dart';
 import 'package:taxi_service/core/services/background_service.dart';
 import 'package:taxi_service/core/services/push_notification_service.dart';
 import '../utils/location_helper.dart';
 import '../network/api_client.dart';
 import '../di/injection.dart';
-import 'sound_service.dart';
 import 'gps_service.dart';
-import 'profile_service.dart';
-import 'settings_service.dart';
 import '../../domain/entities/order.dart';
 
 class TaxometerService {
@@ -78,12 +72,12 @@ class TaxometerService {
 
   Timer? _logTimer;
   Timer? _uiSyncTimer;
-  List<Map<String, dynamic>> _roadDetails = [];
+  final List<Map<String, dynamic>> _roadDetails = [];
   double? _lastLoggedFare;
   double? _lastLoggedLat;
   double? _lastLoggedLng;
   bool _isStateTransitioning = false;
-  bool _tookStartingPosition = false;
+  final bool _tookStartingPosition = false;
   bool showModifiedOrderAlert = false;
 
   // Text-to-Speech
@@ -112,7 +106,7 @@ class TaxometerService {
 
   bool get isTaxometerScreenActive => _isTaxometerScreenActive;
 
-  void set isTaxometerScreenActive(bool value) {
+  set isTaxometerScreenActive(bool value) {
     _isTaxometerScreenActive = value;
     Future.delayed(const Duration(milliseconds: 200), () {
       _notifyStateChange();
@@ -120,7 +114,7 @@ class TaxometerService {
   }
 
   // Background operation
-  bool _isInBackground = false;
+  final bool _isInBackground = false;
 
   // Getters
   bool get isRunning => _isRunning;
@@ -210,14 +204,16 @@ class TaxometerService {
     _notifyStateChange();
   }
 
-  void cancelRequest(data) {
+  void cancelRequest(data) async {
     PushNotificationService.showNotification(
         id: 1,
         title: 'Заказ отменён!',
         body: 'Заказ по адресу: ${data['requested_address']} был отменён.');
     if (onRequestCancelled != null) {
-      onRequestCancelled;
+      await stopBackgroundService();
+      onRequestCancelled!();
       requestCancelled = true;
+      resetTaxometer();
       _notifyStateChange();
     }
   }
@@ -401,6 +397,7 @@ class TaxometerService {
     _currentOrder = null;
 
     // Reset movement detection
+    _locationSubscription?.cancel();
     _lastPositionForMovementDetection = null;
     _lastMovementDetectionTime = null;
 
@@ -677,7 +674,7 @@ class TaxometerService {
       listener();
     }
     FlutterForegroundTask.updateService(
-      notificationTitle: 'Tiz Taxi',
+      notificationTitle: 'Resul Taxi',
       notificationText:
           // 'Töleg: ${currentFare.toStringAsFixed(2)}, Geçilen ýol: ${_distance}, Wagt: ${_formatTime(_elapsedTime)}',
           '💲: ${currentFare.toStringAsFixed(2)}TMT , ⏱️: ${_formatTime(_elapsedTime)}, 🚕: ${_distance.toStringAsFixed(2)} km',

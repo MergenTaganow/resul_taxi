@@ -1,32 +1,23 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taxi_service/core/network/api_client.dart';
 import 'package:taxi_service/core/services/taxometer_service.dart';
-import 'package:taxi_service/domain/entities/order.dart';
-import 'package:taxi_service/presentation/blocs/auth/auth_bloc.dart';
-import 'package:taxi_service/presentation/blocs/auth/auth_event.dart';
 import 'package:taxi_service/presentation/screens/districts_screen.dart';
 import 'package:taxi_service/presentation/screens/taxometer_screen.dart';
 import 'package:taxi_service/presentation/screens/notifications_screen.dart';
 import 'package:taxi_service/presentation/screens/messages_screen.dart';
-import 'package:taxi_service/presentation/screens/statistics_screen.dart';
 import 'package:taxi_service/presentation/screens/payments_screen.dart';
 import 'package:taxi_service/core/di/injection.dart';
 import 'package:taxi_service/domain/repositories/auth_repository.dart';
 import 'package:taxi_service/presentation/screens/settings_screen.dart';
 import 'package:taxi_service/core/services/gps_service.dart';
-
 import 'package:taxi_service/presentation/screens/additional_settings_screen.dart';
-
 import 'package:taxi_service/core/services/profile_service.dart';
 import 'package:taxi_service/core/mixins/location_warning_mixin.dart';
 import 'package:taxi_service/core/services/connectivity_service.dart';
-
 import '../../core/services/queued_requests_service.dart';
 
 class MainScreen extends StatefulWidget {
@@ -89,15 +80,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver, Lo
         getIt<QueuedRequestsService>().retryQueuedRequests();
       } else {
         // 📡 No internet — start TTS loop every 10 seconds
-        if (_ttsTimer == null) {
-          _ttsTimer = Timer.periodic(Duration(seconds: 10), (timer) async {
+        _ttsTimer ??= Timer.periodic(const Duration(seconds: 10), (timer) async {
             try {
               await _taxometerService.speakSentence("Включите интернет!");
             } catch (e) {
               print('Error speaking message: $e');
             }
           });
-        }
       }
     });
   }
@@ -173,672 +162,348 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver, Lo
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scaffoldKey = GlobalKey<ScaffoldState>();
     return WillPopScope(
-      onWillPop: () {
-        // Show exit confirmation dialog
-        return Future.microtask(() => false);
-      },
+      onWillPop: () => Future.microtask(() => false),
       child: Scaffold(
-        key: scaffoldKey,
-        drawer: _AppDrawer(),
-        body: Stack(
-          children: [
-            // Gradient background
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF232526), Color(0xFF414345)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+        backgroundColor: Colors.grey[900],
+        appBar: AppBar(
+          backgroundColor: Colors.orange,
+          elevation: 0,
+          title: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  'assets/images/tiztaxi.png',
+                  width: 32,
+                  height: 32,
+                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.local_taxi, color: Colors.white),
                 ),
               ),
-            ),
-            // Main content
-            SafeArea(
-              child: Column(
-                children: [
-                  // Top bar with glassmorphism
-                  _FrostedBar(
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () => scaffoldKey.currentState?.openDrawer(),
-                          child: const Icon(Icons.menu, color: Colors.white, size: 32),
-                        ),
-                        const SizedBox(width: 10),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.asset(
-                            'assets/images/tiztaxi.png',
-                            width: 50,
-                            height: 50,
-                          ),
-                        ),
-                        const Spacer(),
-                        GestureDetector(
-                          onTap: _loadProfile,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('₸ ${_currentBalance.toStringAsFixed(2)}',
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        // GPS Status Indicator
-                        GestureDetector(
-                          onTap: _checkGpsStatus,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: _isGpsEnabled
-                                  ? Colors.green.withOpacity(0.2)
-                                  : Colors.red.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Icon(
-                              _isGpsEnabled ? Icons.location_on : Icons.location_off,
-                              color: _isGpsEnabled ? Colors.greenAccent : Colors.redAccent,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        // Network Status Indicator
-                        GestureDetector(
-                          onTap: () async {
-                            await _connectivityService.testConnectivity();
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: _isConnected
-                                  ? Colors.green.withOpacity(0.2)
-                                  : Colors.red.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Icon(
-                              _isConnected ? Icons.wifi : Icons.wifi_off,
-                              color: _isConnected ? Colors.greenAccent : Colors.redAccent,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Grid
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      child: GridView.count(
-                        crossAxisCount: 2,
-                        childAspectRatio: 1.2,
-                        mainAxisSpacing: 28,
-                        crossAxisSpacing: 16,
-                        children: [
-                          _DashboardButton(
-                              icon: Icons.grid_view_rounded,
-                              label: 'Районы',
-                              iconColor: Colors.blueAccent,
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const DistrictsScreen()),
-                                );
-                              }),
-                          _DashboardButton(
-                            icon: Icons.speed_rounded,
-                            label: 'Таксометр',
-                            iconColor: Colors.orange,
-                            onTap: _taxometerService.currentOrder != null
-                                ? () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => const TaxometerScreen(),
-                                      ),
-                                    );
-                                    // Taxometer is now self-contained, no service dependency
-                                    // This will be handled by the order flow
-                                  }
-                                : null,
-                          ),
-                          // _DashboardButton(
-                          //     icon: Icons.event_available_rounded,
-                          //     label: 'Предзаказы',
-                          //     iconColor: Colors.purpleAccent),
-                          _DashboardButton(
-                              icon: Icons.chat_bubble_rounded,
-                              label: 'Сообщения',
-                              iconColor: Colors.lightBlueAccent,
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const MessagesScreen(),
-                                  ),
-                                );
-                              }),
-                          _DashboardButton(
-                              icon: Icons.sticky_note_2_rounded,
-                              label: 'Объявления',
-                              iconColor: Colors.amberAccent,
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const NotificationsScreen(),
-                                  ),
-                                );
-                              }),
-                          // _DashboardButton(
-                          //     icon: Icons.bar_chart_rounded,
-                          //     label: 'Статистика',
-                          //     iconColor: Colors.greenAccent,
-                          //     onTap: () {
-                          //       Navigator.of(context).push(
-                          //         MaterialPageRoute(
-                          //           builder: (_) => const StatisticsScreen(),
-                          //         ),
-                          //       );
-                          //     }),
-                          _DashboardButton(
-                              icon: Icons.build_rounded,
-                              label: 'Настройки',
-                              iconColor: Colors.deepOrangeAccent,
-                              onTap: () async {
-                                // await FloatingOverlayController
-                                //     .requestPermission();
-                                // await FloatingOverlayController.closeOverlay();
-                                // await FloatingOverlayController.showOverlay();
-
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const SettingsScreen(),
-                                  ),
-                                );
-                              }),
-                          _DashboardButton(
-                              icon: Icons.more_horiz_rounded,
-                              label: 'Дополнительно',
-                              iconColor: Colors.tealAccent,
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const AdditionalSettingsScreen(),
-                                  ),
-                                );
-                              }),
-                          _DashboardButton(
-                              icon: Icons.exit_to_app_rounded,
-                              label: 'Выход',
-                              iconColor: Colors.redAccent,
-                              onTap: () async {
-                                // final shouldExit = await _showExitDialog();
-                                // if (shouldExit) {
-                                //   // Exit the app
-                                // Navigator.of(context).pop();
-                                SystemNavigator.pop();
-                                // }
-                              }),
-                          // Test button for overlay
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Network connectivity warning overlay
-            if (!_isConnected)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
+              const SizedBox(width: 6),
+              const Text('Resul Taxi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              // Balance
+              GestureDetector(
+                onTap: _loadProfile,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.9),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.wifi_off,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Нет подключения к интернету',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    '₸ ${_currentBalance.toStringAsFixed(2)}',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<bool> _showExitDialog() async {
-    // Taxometer is now self-contained, no service dependency
-    // Show normal exit dialog
-    return await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              backgroundColor: Colors.grey[900],
-              title: const Text(
-                'Выход из приложения',
-                style: TextStyle(color: Colors.white),
-              ),
-              content: const Text(
-                'Вы уверены, что хотите выйти из приложения?',
-                style: TextStyle(color: Colors.white70),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text(
-                    'Отмена',
-                    style: TextStyle(color: Colors.white70),
-                  ),
+              const SizedBox(width: 8),
+              // GPS Status
+              GestureDetector(
+                onTap: _checkGpsStatus,
+                child: Icon(
+                  _isGpsEnabled ? Icons.location_on : Icons.location_off,
+                  color: _isGpsEnabled ? Colors.white : Colors.red[300],
+                  size: 24,
                 ),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Выйти'),
-                ),
-              ],
-            );
-          },
-        ) ??
-        false;
-  }
-}
-
-class _AppDrawer extends StatefulWidget {
-  @override
-  State<_AppDrawer> createState() => _AppDrawerState();
-}
-
-class _AppDrawerState extends State<_AppDrawer> {
-  TextEditingController _messageController = TextEditingController();
-
-  Future<Map<String, String>> _getDriverData() async {
-    final prefs = await SharedPreferences.getInstance();
-    return {
-      'first_name': prefs.getString('first_name') ?? '',
-      'last_name': prefs.getString('last_name') ?? '',
-      'vehicle_type': prefs.getString('vehicle_type') ?? '',
-      'vehicle_number': prefs.getString('vehicle_number') ?? '',
-    };
-  }
-
-  void _showErrorReportDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey[900],
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Row(
-            children: [
-              Icon(
-                Icons.bug_report_rounded,
-                color: Colors.orange,
-                size: 28,
               ),
-              SizedBox(width: 12),
-              Text(
-                'Написать админу',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+              const SizedBox(width: 8),
+              // Network Status
+              GestureDetector(
+                onTap: () async => await _connectivityService.testConnectivity(),
+                child: Icon(
+                  _isConnected ? Icons.wifi : Icons.wifi_off,
+                  color: _isConnected ? Colors.white : Colors.red[300],
+                  size: 24,
                 ),
               ),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Если вы столкнулись с проблемой в приложении, пожалуйста, сообщите нам об этом.',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Мы рассмотрим ваше сообщение и постараемся решить проблему как можно скорее.',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _messageController,
-                decoration: const InputDecoration(
-                  labelText: 'Письмо',
-                  fillColor: Colors.transparent,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white70,
-              ),
-              child: const Text('Отмена'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _sendAppeal(context, _messageController.text);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Отправить письмо',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _sendAppeal(BuildContext context, String message) {
-    getIt<ApiClient>().sendAppeal(message);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      backgroundColor: Colors.transparent,
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF232526), Color(0xFF414345)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
         ),
-        child: SafeArea(
+        drawer: Drawer(
+          backgroundColor: Colors.grey[800],
           child: FutureBuilder<Map<String, String>>(
             future: _getDriverData(),
             builder: (context, snapshot) {
               final data = snapshot.data ?? {};
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              return ListView(
+                padding: EdgeInsets.zero,
                 children: [
-                  const SizedBox(height: 24),
-                  // Driver info header
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withOpacity(0.2)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.person, color: Colors.white, size: 24),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  '${data['first_name']} ${data['last_name']}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              const Icon(Icons.directions_car, color: Colors.white70, size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                data['vehicle_type'] ?? '',
-                                style: const TextStyle(color: Colors.white70, fontSize: 14),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const Icon(Icons.confirmation_number,
-                                  color: Colors.white70, size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                data['vehicle_number'] ?? '',
-                                style: const TextStyle(color: Colors.white70, fontSize: 14),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                  DrawerHeader(
+                    decoration: const BoxDecoration(color: Colors.orange),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.person, color: Colors.white, size: 48),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${data['first_name']} ${data['last_name']}',
+                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          data['vehicle_type'] ?? 'Professional Service',
+                          style: const TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          data['vehicle_number'] ?? '',
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  // Drawer buttons with icons
-
-                  _DrawerButton(
-                      label: 'Платежи',
-                      icon: Icons.payment_rounded,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const PaymentsScreen(),
-                          ),
-                        );
-                      }),
-                  _DrawerButton(
-                    label: 'Написать админу',
-                    icon: Icons.bug_report_rounded,
+                  ListTile(
+                    leading: const Icon(Icons.payment, color: Colors.white),
+                    title: const Text('Платежи', style: TextStyle(color: Colors.white)),
                     onTap: () {
-                      Navigator.of(context).pop();
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentsScreen()));
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.bug_report, color: Colors.white),
+                    title: const Text('Написать админу', style: TextStyle(color: Colors.white)),
+                    onTap: () {
+                      Navigator.pop(context);
                       _showErrorReportDialog(context);
                     },
                   ),
-                  // _DrawerButton(
-                  //   label: 'Мои заказы',
-                  //   icon: Icons.assignment_rounded,
-                  //   onTap: () {
-                  //     Navigator.of(context).pop();
-                  //     Navigator.of(context).push(
-                  //       MaterialPageRoute(
-                  //         builder: (_) => const StatisticsScreen(),
-                  //       ),
-                  //     );
-                  //   },
-                  // ),
-                  _DrawerButton(
-                    label: 'Настройки',
-                    icon: Icons.settings_rounded,
+                  ListTile(
+                    leading: const Icon(Icons.settings, color: Colors.white),
+                    title: const Text('Настройки', style: TextStyle(color: Colors.white)),
                     onTap: () {
-                      Navigator.of(context).pop();
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const SettingsScreen(),
-                        ),
-                      );
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
                     },
                   ),
-                  const Spacer(),
-                  // Padding(
-                  //   padding:
-                  //       const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
-                  //   child: Divider(color: Colors.white24, thickness: 1),
-                  // ),
-                  // Padding(
-                  //   padding:
-                  //       const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
-                  //   child: ElevatedButton.icon(
-                  //     style: ElevatedButton.styleFrom(
-                  //       backgroundColor: Colors.red.withOpacity(0.8),
-                  //       foregroundColor: Colors.white,
-                  //       minimumSize: const Size.fromHeight(48),
-                  //       shape: RoundedRectangleBorder(
-                  //         borderRadius: BorderRadius.circular(14),
-                  //       ),
-                  //       elevation: 0,
-                  //     ),
-                  //     onPressed: () {
-                  //       Navigator.of(context).pop();
-                  //       context.read<AuthBloc>().add(const AuthEvent.logout());
-                  //     },
-                  //     icon: const Icon(Icons.logout, size: 24),
-                  //     label:
-                  //         const Text('Выйти', style: TextStyle(fontSize: 18)),
-                  //   ),
-                  // ),
                 ],
               );
             },
           ),
         ),
+        body: Column(
+          children: [
+            // Network warning
+            if (!_isConnected)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                color: Colors.red,
+                child: const Row(
+                  children: [
+                    Icon(Icons.wifi_off, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Text('Нет подключения к интернету', style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ),
+            // Main grid
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 1.1,
+                  children: [
+                    _SimpleButton(
+                      icon: Icons.grid_view,
+                      label: 'Районы',
+                      color: Colors.blue,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DistrictsScreen())),
+                    ),
+                    _SimpleButton(
+                      icon: Icons.speed,
+                      label: 'Таксометр',
+                      color: Colors.orange,
+                      onTap: _taxometerService.currentOrder != null
+                          ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TaxometerScreen()))
+                          : null,
+                    ),
+                    _SimpleButton(
+                      icon: Icons.chat_bubble,
+                      label: 'Сообщения',
+                      color: Colors.green,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MessagesScreen())),
+                    ),
+                    _SimpleButton(
+                      icon: Icons.notifications,
+                      label: 'Объявления',
+                      color: Colors.purple,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+                    ),
+                    _SimpleButton(
+                      icon: Icons.settings,
+                      label: 'Настройки',
+                      color: Colors.grey,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                    ),
+                    _SimpleButton(
+                      icon: Icons.more_horiz,
+                      label: 'Дополнительно',
+                      color: Colors.teal,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdditionalSettingsScreen())),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Exit button at bottom
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => SystemNavigator.pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.exit_to_app),
+                  label: const Text('Выход', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showErrorReportDialog(BuildContext context) {
+    final messageController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[800],
+        title: const Text('Написать админу', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Опишите проблему:', style: TextStyle(color: Colors.white70)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: messageController,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                hintText: 'Ваше сообщение...',
+                hintStyle: TextStyle(color: Colors.white54),
+                border: OutlineInputBorder(),
+                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white54)),
+                focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.orange)),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (messageController.text.isNotEmpty) {
+                getIt<ApiClient>().sendAppeal(messageController.text);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Сообщение отправлено')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Отправить'),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _DrawerButton extends StatelessWidget {
+class _SimpleButton extends StatelessWidget {
+  final IconData icon;
   final String label;
-  final IconData? icon;
-  final Color? color;
-  final Color? textColor;
-  final bool isBold;
-  final bool highlight;
+  final Color color;
   final VoidCallback? onTap;
-  const _DrawerButton({
+
+  const _SimpleButton({
+    required this.icon,
     required this.label,
-    this.icon,
-    this.color,
-    this.textColor,
-    this.isBold = false,
-    this.highlight = false,
+    required this.color,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color?.withOpacity(highlight ? 0.95 : 0.85) ??
-              const Color(0xFF4B5A67).withOpacity(0.85),
-          foregroundColor: textColor ?? Colors.white,
-          minimumSize: const Size.fromHeight(56),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          elevation: highlight ? 6 : 0,
-          shadowColor: highlight ? Colors.amber.withOpacity(0.3) : Colors.transparent,
-        ),
-        onPressed: onTap,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 28, color: textColor ?? Colors.white),
-              const SizedBox(width: 18),
+    final isDisabled = onTap == null;
+    
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: isDisabled 
+                ? LinearGradient(
+                    colors: [Colors.grey[700]!, Colors.grey[600]!],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : LinearGradient(
+                    colors: [color.withOpacity(0.9), color.withOpacity(0.7)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDisabled ? Colors.grey[500]! : color.withOpacity(0.3),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isDisabled 
+                    ? Colors.black.withOpacity(0.1)
+                    : color.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
             ],
-            Expanded(
-              child: Text(
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDisabled 
+                      ? Colors.grey[600]!.withOpacity(0.3)
+                      : Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  size: 40,
+                  color: isDisabled ? Colors.grey[400] : Colors.white,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
                 label,
                 style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-                  color: textColor ?? Colors.white,
+                  color: isDisabled ? Colors.grey[400] : Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
                 ),
+                textAlign: TextAlign.center,
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FrostedBar extends StatelessWidget {
-  final Widget child;
-  const _FrostedBar({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.10),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white.withOpacity(0.08)),
-            ),
-            child: child,
+            ],
           ),
         ),
       ),
@@ -846,226 +511,4 @@ class _FrostedBar extends StatelessWidget {
   }
 }
 
-class _StatusIcon extends StatelessWidget {
-  final IconData icon;
-  const _StatusIcon({required this.icon});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.redAccent.withOpacity(0.85),
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.redAccent.withOpacity(0.25),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(5),
-      child: Icon(icon, color: Colors.white, size: 20),
-    );
-  }
-}
-
-class _DashboardButton extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final Color? iconColor;
-  final bool highlight;
-  final VoidCallback? onTap;
-  const _DashboardButton(
-      {required this.icon,
-      required this.label,
-      this.iconColor,
-      this.highlight = false,
-      this.onTap});
-
-  @override
-  State<_DashboardButton> createState() => _DashboardButtonState();
-}
-
-class _DashboardButtonState extends State<_DashboardButton> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final highlight = widget.highlight;
-    final isDisabled = widget.onTap == null;
-
-    return GestureDetector(
-      onTapDown: isDisabled ? null : (_) => setState(() => _pressed = true),
-      onTapUp: isDisabled ? null : (_) => setState(() => _pressed = false),
-      onTapCancel: isDisabled ? null : () => setState(() => _pressed = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOut,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            if (highlight)
-              BoxShadow(
-                color: Colors.redAccent.withOpacity(0.5),
-                blurRadius: 18,
-                spreadRadius: 2,
-              ),
-            BoxShadow(
-              color: Colors.black.withOpacity(0.18),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.white.withOpacity(_pressed ? 0.18 : (isDisabled ? 0.08 : 0.13)),
-          borderRadius: BorderRadius.circular(20),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            splashColor: isDisabled
-                ? Colors.transparent
-                : (widget.iconColor ?? Colors.white).withOpacity(0.18),
-            highlightColor: Colors.transparent,
-            onTap: widget.onTap,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: (widget.iconColor ?? Colors.white).withOpacity(isDisabled ? 0.08 : 0.13),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  padding: const EdgeInsets.all(12),
-                  child: Icon(widget.icon,
-                      size: 40,
-                      color:
-                          (widget.iconColor ?? Colors.white).withOpacity(isDisabled ? 0.5 : 1.0)),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  widget.label,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(isDisabled ? 0.5 : 1.0),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withOpacity(0.18),
-                        blurRadius: 2,
-                      ),
-                    ],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DutyStatusDialog extends StatefulWidget {
-  @override
-  State<_DutyStatusDialog> createState() => _DutyStatusDialogState();
-}
-
-class _DutyStatusDialogState extends State<_DutyStatusDialog> {
-  bool _onDuty = true;
-  bool _loading = false;
-  String? _error;
-
-  Future<void> _setDutyStatus(bool onDuty) async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      await getIt<AuthRepository>().setDutyStatus(onDuty ? 'on_duty' : 'off_duty');
-      setState(() {
-        _onDuty = onDuty;
-      });
-    } catch (e) {
-      setState(() {
-        _error = 'Ошибка при обновлении статуса';
-      });
-    } finally {
-      setState(() {
-        _loading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Статус водителя',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Row(
-                //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                //   children: [
-                //     const Text('Принимать заказы',
-                //         style: TextStyle(color: Colors.white, fontSize: 16)),
-                //     Switch(
-                //       value: _onDuty,
-                //       onChanged: _loading ? null : (val) => _setDutyStatus(val),
-                //       activeColor: Colors.greenAccent,
-                //       inactiveThumbColor: Colors.redAccent,
-                //     ),
-                //   ],
-                // ),
-                if (_loading) ...[
-                  const SizedBox(height: 16),
-                  const CircularProgressIndicator(),
-                ],
-                if (_error != null) ...[
-                  const SizedBox(height: 16),
-                  Text(_error!, style: const TextStyle(color: Colors.redAccent)),
-                ],
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: _loading ? null : () => Navigator.of(context).pop(),
-                        child: const Text('Закрыть', style: TextStyle(color: Colors.white70)),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

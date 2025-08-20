@@ -427,7 +427,7 @@ class _DemoOrderDialogState extends State<_DemoOrderDialog> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        ...?_commuteTypes.map((type) => Container(
+                        ..._commuteTypes.map((type) => Container(
                               margin: const EdgeInsets.only(bottom: 8),
                               decoration: BoxDecoration(
                                 color: _selectedCommuteKey == type.key

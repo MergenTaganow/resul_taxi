@@ -69,7 +69,7 @@ class NotificationListenerService {
           // Show push notification for messages
           await PushNotificationService.showNotification(
             id: message.id,
-            title: '${message.sender}',
+            title: message.sender,
             body: message.content,
             category: NotificationCategory.message,
             payload: 'message_${message.id}',

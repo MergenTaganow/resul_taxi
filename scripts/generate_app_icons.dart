@@ -1,9 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:flutter/services.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'dart:ui' as ui;
 
 void main() async {
   // This script will help generate app icons
@@ -12,18 +7,18 @@ void main() async {
   print('App Icon Generator for Taxi Service');
   print('===================================');
   print('');
-  print('1. Make sure you have saved your logo as assets/images/taxi_logo.png');
+  print('1. Make sure you have saved your logo as assets/images/resul_taxi_icon.png');
   print('2. Run this script to generate app icons');
   print('3. The generated icons will be placed in the appropriate directories');
   print('');
   print(
-      'Note: This script requires the image to be present in assets/images/taxi_logo.png');
+      'Note: This script requires the image to be present in assets/images/resul_taxi_icon.png');
   print('');
 
   // Check if the logo file exists
-  final logoFile = File('assets/images/taxi_logo.png');
+  final logoFile = File('assets/images/resul_taxi_icon.png');
   if (!await logoFile.exists()) {
-    print('❌ Error: assets/images/taxi_logo.png not found!');
+    print('❌ Error: assets/images/resul_taxi_icon.png not found!');
     print('Please save your logo image to that location first.');
     return;
   }

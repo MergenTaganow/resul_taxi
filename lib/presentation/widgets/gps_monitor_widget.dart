@@ -24,7 +24,7 @@ class _GpsMonitorWidgetState extends State<GpsMonitorWidget> {
   }
 
   void _startLocationMonitoring() {
-    final locationSettings = LocationSettings(
+    const locationSettings = LocationSettings(
       distanceFilter: 5, // Same as taxometer service
     );
 

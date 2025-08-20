@@ -79,17 +79,17 @@ class _TariffCardsDemoWidgetState extends State<TariffCardsDemoWidget> {
                             width: 1,
                           ),
                         ),
-                        child: Column(
+                        child: const Column(
                           children: [
-                            const Text(
+                            Text(
                               'Текущая стоимость',
                               style: TextStyle(
                                 color: Colors.white70,
                                 fontSize: 16,
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            const Text(
+                            SizedBox(height: 16),
+                            Text(
                               '25.75 TMT',
                               style: TextStyle(
                                 color: Colors.white,

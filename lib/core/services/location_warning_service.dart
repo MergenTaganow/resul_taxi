@@ -187,12 +187,12 @@ class _LocationWarningOverlayState extends State<_LocationWarningOverlay>
                         size: 24,
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
+                            Text(
                               'Включите геолокацию',
                               style: TextStyle(
                                 color: Colors.white,
@@ -200,8 +200,8 @@ class _LocationWarningOverlayState extends State<_LocationWarningOverlay>
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            const Text(
+                            SizedBox(height: 4),
+                            Text(
                               'Для работы приложения необходимо включить GPS',
                               style: TextStyle(
                                 color: Colors.white70,

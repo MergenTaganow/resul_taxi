@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taxi_service/core/di/injection.dart';
 import 'package:taxi_service/core/services/additional_settings_service.dart';
 
@@ -12,7 +11,7 @@ class AdditionalSettingsScreen extends StatefulWidget {
 }
 
 class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
-  AdditionalSettingsService _additionalSettingsService =
+  final AdditionalSettingsService _additionalSettingsService =
       getIt<AdditionalSettingsService>();
 
   @override
@@ -26,6 +25,7 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
     setState(() {});
   }
 
+  @override
   dispose() {
     _additionalSettingsService.saveSettings();
     super.dispose();
@@ -34,22 +34,12 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF232526),
+      backgroundColor: Colors.grey[900],
       appBar: AppBar(
-        backgroundColor: const Color(0xFF232526),
+        backgroundColor: Colors.orange,
         elevation: 0,
-        title: const Text(
-          'Дополнительно',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        title: const Text('Дополнительно', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -57,17 +47,13 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSectionTitle('Звук и уведомления'),
+            const SizedBox(height: 12),
             _buildSoundLevelCard(),
             _buildVibrationCard(),
-            // _buildNotificationsCard(),
-            // const SizedBox(height: 24),
-            // _buildSectionTitle('Внешний вид'),
-            // _buildDarkModeCard(),
-            // _buildFontSizeCard(),
             _buildRingtoneCard(),
             const SizedBox(height: 24),
             _buildSectionTitle('Приложение'),
-            // _buildAutoStartCard(),
+            const SizedBox(height: 12),
             _buildAboutCard(),
           ],
         ),
@@ -76,74 +62,152 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
   }
 
   Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
+    return Text(
+      title,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
       ),
     );
   }
 
   Widget _buildSoundLevelCard() {
-    return _buildSettingsCard(
-      icon: Icons.volume_up,
-      title: 'Громкость звука',
-      subtitle: '${(_additionalSettingsService.soundLevel * 100).round()}%',
-      child: Column(
-        children: [
-          Slider(
-            value: _additionalSettingsService.soundLevel,
-            min: 0.0,
-            max: 1.0,
-            divisions: 10,
-            activeColor: const Color(0xFF7C3AED),
-            inactiveColor: Colors.white.withOpacity(0.2),
-            onChanged: (value) {
-              setState(() {
-                _additionalSettingsService.soundLevel = value;
-              });
-            },
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Тихо',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-              const Text(
-                'Громко',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-            ],
-          ),
-        ],
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[800],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withOpacity(0.2)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.volume_up,
+                    color: Colors.orange,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Громкость звука',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${(_additionalSettingsService.soundLevel * 100).round()}%',
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Column(
+              children: [
+                Slider(
+                  value: _additionalSettingsService.soundLevel,
+                  min: 0.0,
+                  max: 1.0,
+                  divisions: 10,
+                  activeColor: Colors.orange,
+                  inactiveColor: Colors.grey[600],
+                  onChanged: (value) {
+                    setState(() {
+                      _additionalSettingsService.soundLevel = value;
+                    });
+                  },
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Тихо',
+                      style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                    ),
+                    Text(
+                      'Громко',
+                      style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildVibrationCard() {
-    return _buildSettingsCard(
-      icon: Icons.vibration,
-      title: 'Вибрация',
-      subtitle: _additionalSettingsService.vibrationEnabled
-          ? 'Включена'
-          : 'Выключена',
-      child: Switch(
-        value: _additionalSettingsService.vibrationEnabled,
-        onChanged: (value) {
-          setState(() {
-            _additionalSettingsService.vibrationEnabled = value;
-          });
-        },
-        activeColor: const Color(0xFF7C3AED),
-        inactiveThumbColor: Colors.white.withOpacity(0.3),
-        inactiveTrackColor: Colors.white.withOpacity(0.1),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[800],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withOpacity(0.2)),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.blue.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(
+            Icons.vibration,
+            color: Colors.blue,
+            size: 24,
+          ),
+        ),
+        title: const Text(
+          'Вибрация',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+        subtitle: Text(
+          _additionalSettingsService.vibrationEnabled ? 'Включена' : 'Выключена',
+          style: TextStyle(
+            color: Colors.grey[400],
+            fontSize: 12,
+          ),
+        ),
+        trailing: Switch(
+          value: _additionalSettingsService.vibrationEnabled,
+          onChanged: (value) {
+            setState(() {
+              _additionalSettingsService.vibrationEnabled = value;
+            });
+          },
+          activeColor: Colors.green,
+          inactiveThumbColor: Colors.red,
+          inactiveTrackColor: Colors.red.withOpacity(0.3),
+        ),
       ),
     );
   }
@@ -228,53 +292,83 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
   // }
 
   Widget _buildRingtoneCard() {
-    return _buildSettingsCard(
-      icon: Icons.music_note,
-      title: 'Рингтон',
-      subtitle: '',
-      child: PopupMenuButton<String>(
-        color: const Color(0xFF2A2A2A),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    String getRingtoneName() {
+      switch (_additionalSettingsService.ringtone) {
+        case 'funny.mp3':
+          return 'Funny';
+        case 'phone.mp3':
+          return 'Default';
+        default:
+          return 'Simple';
+      }
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[800],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withOpacity(0.2)),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.purple.withOpacity(0.2),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _additionalSettingsService.ringtone == 'funny.mp3'
-                    ? 'Funny'
-                    : _additionalSettingsService.ringtone == 'phone.mp3'
-                        ? 'Default'
-                        : 'Simple',
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(width: 8),
-              const Icon(Icons.arrow_drop_down, color: Colors.white),
-            ],
+          child: const Icon(
+            Icons.music_note,
+            color: Colors.purple,
+            size: 24,
           ),
         ),
-        onSelected: (value) {
-          setState(() {
-            _additionalSettingsService.ringtone = value;
-          });
-        },
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: 'ringtone.mp3',
-            child: Text('Simple', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Рингтон',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
           ),
-          const PopupMenuItem(
-            value: 'phone.mp3',
-            child: Text('Default', style: TextStyle(color: Colors.white)),
+        ),
+        subtitle: Text(
+          getRingtoneName(),
+          style: TextStyle(
+            color: Colors.grey[400],
+            fontSize: 12,
           ),
-          const PopupMenuItem(
-            value: 'funny.mp3',
-            child: Text('Funny', style: TextStyle(color: Colors.white)),
+        ),
+        trailing: PopupMenuButton<String>(
+          color: Colors.grey[800],
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.purple.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.purple.withOpacity(0.3)),
+            ),
+            child: const Icon(Icons.arrow_drop_down, color: Colors.purple, size: 20),
           ),
-        ],
+          onSelected: (value) {
+            setState(() {
+              _additionalSettingsService.ringtone = value;
+            });
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'ringtone.mp3',
+              child: Text('Simple', style: TextStyle(color: Colors.white)),
+            ),
+            const PopupMenuItem(
+              value: 'phone.mp3',
+              child: Text('Default', style: TextStyle(color: Colors.white)),
+            ),
+            const PopupMenuItem(
+              value: 'funny.mp3',
+              child: Text('Funny', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -300,82 +394,48 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
   // }
 
   Widget _buildAboutCard() {
-    return _buildSettingsCard(
-      icon: Icons.info_outline,
-      title: 'О приложении',
-      subtitle: 'Версия 1.0.0',
-      child: IconButton(
-        icon: const Icon(Icons.arrow_forward_ios, color: Colors.white54),
-        onPressed: () {
-          _showAboutDialog();
-        },
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[800],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withOpacity(0.2)),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.blue.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(
+            Icons.info_outline,
+            color: Colors.blue,
+            size: 24,
+          ),
+        ),
+        title: const Text(
+          'О приложении',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+        subtitle: const Text(
+          'Версия 1.0.0',
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: 12,
+          ),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+        onTap: _showAboutDialog,
       ),
     );
   }
 
-  Widget _buildSettingsCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Widget child,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF7C3AED).withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: const Color(0xFF7C3AED),
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  if (subtitle.isNotEmpty)
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
-                        fontSize: 14,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            child,
-          ],
-        ),
-      ),
-    );
-  }
+
 
   // String _getFontSizeLabel() {
   //   if (_fontSize <= 0.9) return 'Маленький';
@@ -388,50 +448,76 @@ class _AdditionalSettingsScreenState extends State<AdditionalSettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A2A2A),
+        backgroundColor: Colors.grey[800],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'О приложении',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Водитель Такси',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.local_taxi, color: Colors.orange, size: 32),
+                  SizedBox(width: 12),
+                  Text(
+                    'Resul Taxi',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: 8),
-            Text(
-              'Версия: 1.0.0',
-              style: TextStyle(color: Colors.white70),
-            ),
-            SizedBox(height: 4),
-            Text(
-              'Разработчик: Tiz Taxi',
-              style: TextStyle(color: Colors.white70),
-            ),
-            SizedBox(height: 4),
-            Text(
-              '© 2025 Все права защищены',
-              style: TextStyle(color: Colors.white70),
-            ),
+            const SizedBox(height: 16),
+            _buildInfoRow(Icons.info_outline, 'Версия', '1.0.0'),
+            const SizedBox(height: 8),
+            _buildInfoRow(Icons.code, 'Разработчик', 'Resul Taxi'),
+            const SizedBox(height: 8),
+            _buildInfoRow(Icons.copyright, 'Права', '© 2025 Все права защищены'),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
-              'Закрыть',
-              style: TextStyle(color: Color(0xFF7C3AED)),
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.orange.withOpacity(0.2),
+              foregroundColor: Colors.orange,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
+            child: const Text('Закрыть', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.grey[400], size: 16),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: TextStyle(color: Colors.grey[400], fontSize: 14),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+          ),
+        ),
+      ],
     );
   }
 }

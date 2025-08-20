@@ -5,7 +5,6 @@ import 'package:taxi_service/domain/entities/order.dart';
 import 'package:taxi_service/domain/repositories/order_repository.dart';
 import 'package:taxi_service/presentation/blocs/order/order_event.dart';
 import 'package:taxi_service/presentation/blocs/order/order_state.dart';
-import 'package:taxi_service/presentation/screens/taxometer_screen.dart';
 
 class OrderBloc extends Bloc<OrderEvent, OrderState> {
   final OrderRepository _orderRepository;

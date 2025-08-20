@@ -1,6 +1,4 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:taxi_service/domain/entities/latlng.dart';
-import 'package:taxi_service/domain/entities/latlng_converter.dart';
 import 'package:taxi_service/core/utils/num_converter.dart';
 
 part 'order.freezed.dart';

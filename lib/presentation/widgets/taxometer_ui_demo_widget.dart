@@ -9,8 +9,8 @@ class TaxometerUIDemoWidget extends StatefulWidget {
 
 class _TaxometerUIDemoWidgetState extends State<TaxometerUIDemoWidget> {
   bool _isGpsEnabled = true;
-  int _elapsedTime = 245; // 4:05
-  double _distance = 3.742;
+  final int _elapsedTime = 245; // 4:05
+  final double _distance = 3.742;
   bool _isWaiting = true;
   bool _isRunning = false;
 
@@ -233,7 +233,7 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final highlightColor = Colors.orangeAccent;
+    const highlightColor = Colors.orangeAccent;
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Container(

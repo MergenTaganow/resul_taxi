@@ -4,7 +4,6 @@ import 'package:taxi_service/core/di/injection.dart';
 import 'package:taxi_service/domain/entities/order.dart';
 import 'package:taxi_service/domain/entities/commute_type.dart';
 import 'package:taxi_service/domain/repositories/order_repository.dart';
-import 'package:taxi_service/presentation/blocs/districts/districts_cubit.dart';
 import 'package:taxi_service/presentation/widgets/order_card.dart';
 import 'package:taxi_service/presentation/blocs/order/order_bloc.dart';
 import 'package:taxi_service/presentation/blocs/order/order_event.dart';
@@ -590,9 +589,9 @@ class _CommuteTypeDialogState extends State<_CommuteTypeDialog> {
 
                     // Commute types section
                     _loading
-                        ? Container(
+                        ? const SizedBox(
                             height: 120,
-                            child: const Center(
+                            child: Center(
                               child: CircularProgressIndicator(
                                 valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
                               ),

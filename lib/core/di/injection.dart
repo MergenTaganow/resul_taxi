@@ -2,7 +2,6 @@ import 'package:get_it/get_it.dart';
 import 'package:taxi_service/core/network/api_client.dart';
 import 'package:taxi_service/core/network/socket_client.dart';
 import 'package:taxi_service/core/services/additional_settings_service.dart';
-import 'package:taxi_service/core/services/background_service.dart';
 import 'package:taxi_service/core/services/sound_service.dart';
 import 'package:taxi_service/core/services/push_notification_service.dart';
 import 'package:taxi_service/core/services/profile_service.dart';

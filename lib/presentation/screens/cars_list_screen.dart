@@ -226,13 +226,13 @@ class _CarsListScreenState extends State<CarsListScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.error_outline,
                                   color: Colors.redAccent,
                                   size: 64,
                                 ),
                                 const SizedBox(height: 16),
-                                Text(
+                                const Text(
                                   'Ошибка загрузки',
                                   style: TextStyle(
                                     color: Colors.white,
@@ -243,7 +243,7 @@ class _CarsListScreenState extends State<CarsListScreen> {
                                 const SizedBox(height: 8),
                                 Text(
                                   _error!,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: Colors.white70,
                                     fontSize: 14,
                                   ),
@@ -266,7 +266,7 @@ class _CarsListScreenState extends State<CarsListScreen> {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(
+                                    const Icon(
                                       Icons.local_taxi,
                                       color: Colors.white54,
                                       size: 64,
@@ -276,7 +276,7 @@ class _CarsListScreenState extends State<CarsListScreen> {
                                       _cars.isEmpty
                                           ? 'Нет машин в районе'
                                           : 'Ничего не найдено',
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
@@ -287,7 +287,7 @@ class _CarsListScreenState extends State<CarsListScreen> {
                                       _cars.isEmpty
                                           ? 'В данный момент в районе нет зарегистрированных машин'
                                           : 'Попробуйте изменить поисковый запрос',
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         color: Colors.white70,
                                         fontSize: 14,
                                       ),
@@ -357,7 +357,7 @@ class _CarCard extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       backgroundColor: Colors.blueAccent.withOpacity(0.2),
-                      child: Icon(
+                      child: const Icon(
                         Icons.person,
                         color: Colors.blueAccent,
                         size: 20,
@@ -417,7 +417,7 @@ class _CarCard extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.directions_car,
                         color: Colors.greenAccent,
                         size: 20,

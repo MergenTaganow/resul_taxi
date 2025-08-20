@@ -25,7 +25,7 @@ class TaxiDriverService : Service() {
             ?.let { PendingIntent.getActivity(this, 0, it, PendingIntent.FLAG_IMMUTABLE) }
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Taxi Driver")
+            .setContentTitle("Resul Taxi")
             .setContentText("App is running in background")
             .setSmallIcon(R.drawable.notification_icon)
             .setOngoing(true)
@@ -40,7 +40,7 @@ class TaxiDriverService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Taxi Driver Service"
+            val name = "Resul Taxi Service"
             val descriptionText = "Shows when the app is running in background"
             val importance = NotificationManager.IMPORTANCE_LOW
             val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {

@@ -63,7 +63,7 @@ class _TaxometerOverlayWidgetState extends State<TaxometerOverlayWidget> {
         onTap: () {
           // Navigate to taxometer screen when tapped
           Navigator.of(navigatorKey.currentContext!)
-              .push(MaterialPageRoute(builder: (context) => TaxometerScreen()));
+              .push(MaterialPageRoute(builder: (context) => const TaxometerScreen()));
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -223,9 +223,9 @@ class _TaxometerOverlayWidgetState extends State<TaxometerOverlayWidget> {
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
     if (minutes > 0) {
-      return '${minutes}м ${remainingSeconds}с';
+      return '$minutesм $remainingSecondsс';
     } else {
-      return '${remainingSeconds}с';
+      return '$remainingSecondsс';
     }
   }
 

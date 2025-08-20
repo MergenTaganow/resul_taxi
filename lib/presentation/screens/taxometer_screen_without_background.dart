@@ -9,7 +9,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/utils/location_helper.dart';
 import 'package:taxi_service/core/network/api_client.dart';
 import 'package:taxi_service/core/di/injection.dart';
-import 'package:taxi_service/core/services/sound_service.dart';
 import 'package:taxi_service/core/mixins/location_warning_mixin.dart';
 import 'package:taxi_service/core/services/gps_service.dart';
 
@@ -88,7 +87,7 @@ class _TaxometerScreenState extends State<TaxometerScreen>
 
   Timer? _logTimer;
   Timer? _uiSyncTimer;
-  List<Map<String, dynamic>> _roadDetails = [];
+  final List<Map<String, dynamic>> _roadDetails = [];
   double? _lastLoggedFare;
   double? _lastLoggedLat;
   double? _lastLoggedLng;
@@ -544,9 +543,7 @@ class _TaxometerScreenState extends State<TaxometerScreen>
       if (newPosition != null) {
         setState(() {
           _currentPosition = newPosition;
-          if (_lastPosition == null) {
-            _lastPosition = newPosition;
-          }
+          _lastPosition ??= newPosition;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1033,7 +1030,9 @@ class _TaxometerScreenState extends State<TaxometerScreen>
       final lng = _currentPosition!.longitude;
       if (_lastLoggedFare == _currentFare &&
           _lastLoggedLat == lat &&
-          _lastLoggedLng == lng) return;
+          _lastLoggedLng == lng) {
+        return;
+      }
       _lastLoggedFare = _currentFare;
       _lastLoggedLat = lat;
       _lastLoggedLng = lng;
@@ -1546,7 +1545,7 @@ class _TaxometerScreenState extends State<TaxometerScreen>
                       const SizedBox(height: 20),
                       if (_currentTariffName != null)
                         Text(
-                          '${_currentTariffName}',
+                          '$_currentTariffName',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 22,
@@ -1791,7 +1790,7 @@ class _TaxometerScreenState extends State<TaxometerScreen>
                               Expanded(
                                 child: _TariffCard(
                                   label: 'Подача',
-                                  value: '${_baseFare.toStringAsFixed(2)}',
+                                  value: _baseFare.toStringAsFixed(2),
                                   unit: 'тмт',
                                 ),
                               ),
@@ -1799,7 +1798,7 @@ class _TaxometerScreenState extends State<TaxometerScreen>
                               Expanded(
                                 child: _TariffCard(
                                   label: 'Расстояние',
-                                  value: '${_perKmRate.toStringAsFixed(2)}',
+                                  value: _perKmRate.toStringAsFixed(2),
                                   unit: 'тмт/км',
                                 ),
                               ),
@@ -1807,7 +1806,7 @@ class _TaxometerScreenState extends State<TaxometerScreen>
                               Expanded(
                                 child: _TariffCard(
                                   label: 'Ожидание',
-                                  value: '${_waitingRate.toStringAsFixed(2)}',
+                                  value: _waitingRate.toStringAsFixed(2),
                                   unit: 'тмт/мин',
                                 ),
                               ),
@@ -2023,7 +2022,7 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final highlightColor = Colors.orangeAccent;
+    const highlightColor = Colors.orangeAccent;
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Container(
@@ -2506,7 +2505,7 @@ class OrderCompletionScreen extends StatelessWidget {
                           textBaseline: TextBaseline.alphabetic,
                           children: [
                             Text(
-                              '${finalPrice}',
+                              '$finalPrice',
                               style: const TextStyle(
                                 color: Colors.green,
                                 fontSize: 150,

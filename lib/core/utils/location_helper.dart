@@ -214,14 +214,14 @@ class LocationHelper {
     bool oddNodes = false;
 
     for (i = 0; i < coordinates.length; i++) {
-      final double lat_i = coordinates[i][1]; // latitude
-      final double lng_i = coordinates[i][0]; // longitude
-      final double lat_j = coordinates[j][1];
-      final double lng_j = coordinates[j][0];
+      final double latI = coordinates[i][1]; // latitude
+      final double lngI = coordinates[i][0]; // longitude
+      final double latJ = coordinates[j][1];
+      final double lngJ = coordinates[j][0];
 
-      if ((lng_i < lng && lng_j >= lng || lng_j < lng && lng_i >= lng) &&
-          (lat_i <= lat || lat_j <= lat)) {
-        if (lat_i + (lng - lng_i) / (lng_j - lng_i) * (lat_j - lat_i) < lat) {
+      if ((lngI < lng && lngJ >= lng || lngJ < lng && lngI >= lng) &&
+          (latI <= lat || latJ <= lat)) {
+        if (latI + (lng - lngI) / (lngJ - lngI) * (latJ - latI) < lat) {
           oddNodes = !oddNodes;
         }
       }
@@ -439,14 +439,14 @@ class LocationHelper {
     bool oddNodes = false;
 
     for (i = 0; i < coordinates.length; i++) {
-      final double lat_i = coordinates[i][1];
-      final double lng_i = coordinates[i][0];
-      final double lat_j = coordinates[j][1];
-      final double lng_j = coordinates[j][0];
+      final double latI = coordinates[i][1];
+      final double lngI = coordinates[i][0];
+      final double latJ = coordinates[j][1];
+      final double lngJ = coordinates[j][0];
 
-      if ((lng_i < lng && lng_j >= lng || lng_j < lng && lng_i >= lng) &&
-          (lat_i <= lat || lat_j <= lat)) {
-        if (lat_i + (lng - lng_i) / (lng_j - lng_i) * (lat_j - lat_i) < lat) {
+      if ((lngI < lng && lngJ >= lng || lngJ < lng && lngI >= lng) &&
+          (latI <= lat || latJ <= lat)) {
+        if (latI + (lng - lngI) / (lngJ - lngI) * (latJ - latI) < lat) {
           oddNodes = !oddNodes;
         }
       }

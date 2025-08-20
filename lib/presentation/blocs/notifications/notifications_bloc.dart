@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:taxi_service/core/di/injection.dart';
 import 'package:taxi_service/core/network/socket_client.dart';
 import 'package:taxi_service/core/network/api_client.dart';
-import 'package:taxi_service/core/services/push_notification_service.dart';
 import 'package:taxi_service/core/services/notification_overlay_service.dart';
 import 'package:taxi_service/domain/entities/notification.dart' as entity;
 import 'package:taxi_service/presentation/blocs/notifications/notifications_event.dart';

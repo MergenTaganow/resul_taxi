@@ -4,9 +4,6 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-import 'package:flutter_foreground_task/task_handler.dart';
-import 'package:taxi_service/core/network/socket_client.dart';
-import 'package:taxi_service/core/services/taxometer_service.dart';
 
 import '../di/injection.dart';
 
@@ -48,7 +45,7 @@ initBackgroundService() async {
   FlutterForegroundTask.init(
     androidNotificationOptions: AndroidNotificationOptions(
       channelId: 'stop_watch_channel',
-      channelName: 'Stop watch channel',
+      channelName: 'Resul Taxi Service',
       channelDescription: 'This notification appears when the foreground service is running.',
       channelImportance: NotificationChannelImportance.LOW,
       priority: NotificationPriority.LOW,
@@ -75,7 +72,7 @@ startBackgroundService() async {
   } else {
     return FlutterForegroundTask.startService(
       serviceId: 256,
-      notificationTitle: 'Tiz Taxi',
+              notificationTitle: 'Resul Taxi',
       notificationText: 'Hasaplanylýar...',
       notificationIcon: null,
       callback: startCallback,
@@ -85,8 +82,8 @@ startBackgroundService() async {
   }
 }
 
-stopBackgroundService() {
-  FlutterForegroundTask.stopService();
+Future<void> stopBackgroundService() async{
+  await FlutterForegroundTask.stopService();
 }
 
 @pragma('vm:entry-point')

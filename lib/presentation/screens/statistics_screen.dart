@@ -142,7 +142,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               children: [
                 // Summary Cards
                 if (_statistics.isNotEmpty) ...[
-                  Container(
+                  SizedBox(
                     height: 80,
                     child: Row(
                       children: [

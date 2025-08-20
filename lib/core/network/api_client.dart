@@ -39,7 +39,7 @@ class ApiClient {
           print('[DIO RESPONSE DATA] => ${response.data}');
           return handler.next(response);
         },
-        onError: (DioError error, handler) {
+        onError: (DioException error, handler) {
           print(
               '[DIO ERROR] => ${error.response?.statusCode} ${error.requestOptions.uri}');
           print('[DIO ERROR DATA] => ${error.response?.data}');
@@ -58,7 +58,7 @@ class ApiClient {
           print('[DIO REQUEST HEADERS] => ${options.headers}');
           return handler.next(options);
         },
-        onError: (DioError error, handler) async {
+        onError: (DioException error, handler) async {
           if (error.response?.statusCode == 401 && _refreshToken != null) {
             final refreshed = await _refreshAccessToken();
             if (refreshed) {
@@ -169,7 +169,7 @@ class ApiClient {
   // Unregister a district for the driver
   Future<Response> unregisterDistrict(int districtId) async {
     return _dio.delete(
-      '/api/v1/driver-app/drivers/${districtId}/districts',
+      '/api/v1/driver-app/drivers/$districtId/districts',
     );
   }
 
@@ -275,7 +275,7 @@ class ApiClient {
 
   Future<List<dynamic>> getMessages() async {
     final lastThreeDays = DateTime.now()
-        .subtract(Duration(days: 3, hours: 1))
+        .subtract(const Duration(days: 3, hours: 1))
         .millisecondsSinceEpoch;
     final response = await _dio.get(
         '/api/v1/driver-app/chats?limit=100&page=0&order_direction=desc&order_by=id&min_created_at=$lastThreeDays');
@@ -287,7 +287,7 @@ class ApiClient {
 
   Future<List<dynamic>> getNotifications() async {
     final lastThreeDays = DateTime.now()
-        .subtract(Duration(days: 3, hours: 1))
+        .subtract(const Duration(days: 3, hours: 1))
         .millisecondsSinceEpoch;
     final response = await _dio.get(
         '/api/v1/driver-app/notifications?limit=100&page=0&order_direction=desc&order_by=id&min_created_at=$lastThreeDays');

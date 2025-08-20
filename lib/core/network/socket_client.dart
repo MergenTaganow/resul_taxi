@@ -1,12 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:geolocator/geolocator.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:taxi_service/core/di/injection.dart';
-import 'package:taxi_service/core/services/gps_service.dart';
 import 'package:taxi_service/core/services/taxometer_service.dart';
 import 'package:taxi_service/core/services/sound_service.dart';
 import 'package:taxi_service/core/utils/location_helper.dart';
@@ -110,7 +107,7 @@ class SocketClient {
       return;
     }
 
-    final protocol = _useHttps ? 'https' : 'http';
+    const protocol = _useHttps ? 'https' : 'http';
     final socketUrl = '$protocol://$_apiRoot/requests?token=$_authToken';
     print('[SOCKET.IO] Connecting to: $socketUrl');
 
@@ -189,7 +186,7 @@ class SocketClient {
 
     _socket!.on('request-initial-price', (data) {
       print('[SOCKET.IO] Modified initial price: $data');
-      try {
+      // try {
         Map<String, dynamic> orderMap;
         if (data is Map<String, dynamic>) {
           orderMap = data;
@@ -205,9 +202,9 @@ class SocketClient {
           getIt.get<TaxometerService>().modifiedInitialPrice(
               modifiedInitialPrice.toDouble(), orderMap['note'] ?? '');
         }
-      } catch (e, st) {
-        print('[SOCKET.IO] Error parsing Order: $e\n$st');
-      }
+      // } catch (e, st) {
+      //   print('[SOCKET.IO] Error parsing Order: $e\n$st');
+      // }
     });
 
     _socket!.on('request-cancelled', (data) {
@@ -271,7 +268,7 @@ class SocketClient {
 
   void _initializeGpsMonitoring() {
     LocationSettings locationSettings;
-    locationSettings = LocationSettings(
+    locationSettings = const LocationSettings(
       accuracy: LocationAccuracy.high,
       distanceFilter: 5,
     );
@@ -328,9 +325,7 @@ class SocketClient {
       // Send location via Socket.IO
       emit('driver-location', locationData);
       _lastLocationSent = DateTime.now();
-      print(
-          '[SOCKET.IO] Sent location: ${locationData['latitude']}, ${locationData['longitude']}');
-    } catch (e) {
+          } catch (e) {
       print('[SOCKET.IO] Error getting location: $e');
     }
   }
@@ -353,7 +348,6 @@ class SocketClient {
 
 
   void emit(String event, dynamic data) {
-    print('[SOCKET.IO] Emitting $event: $data');
     _socket?.emit(event, data);
   }
 

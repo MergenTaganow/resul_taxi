@@ -78,15 +78,15 @@ class GpsService {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            title: Row(
+            title: const Row(
               children: [
                 Icon(
                   Icons.location_off,
                   color: Colors.redAccent,
                   size: 28,
                 ),
-                const SizedBox(width: 12),
-                const Text(
+                SizedBox(width: 12),
+                Text(
                   'GPS отключен',
                   style: TextStyle(
                     color: Colors.white,
